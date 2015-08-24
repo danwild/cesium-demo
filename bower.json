@@ -1,0 +1,25 @@
+{
+  "name": "cesium-demo",
+  "version": "0.0.1",
+  "authors": [
+    "Daniel Wild <danwild@y7mail.com>"
+  ],
+  "description": "Playing around with cesium functionality, learning JS dep mgmt and build tools.",
+  "main": "app.js",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.4.4",
+    "angular-bootstrap": "~0.13.3",
+    "bootstrap": "3.3.4",
+    "cesium": "cesiumjs#~1.12.0",
+    "font-awesome": "fontawesome#~4.4.0",
+    "jquery": "~1.11.1"
+  }
+}
