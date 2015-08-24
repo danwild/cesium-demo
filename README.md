@@ -12,6 +12,11 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 <p>Build:</p>
 `gulp`
 
+<p>Run:</p>
+`node server.js` (just using the express server that comes with cesium)
+
+<p><a href="http://localhost:8080/" target="_blank">http://localhost:8080/</a></p>
+
 
 <h2>Gulp Stuff</h2>
 
