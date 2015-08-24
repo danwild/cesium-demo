@@ -49,7 +49,7 @@ gulp.task('watch', function() {
  
 gulp.task('concatCss', function () {
   return gulp.src('components/**/*.css')
-    .pipe(concatCss("components.css"))
+    .pipe(concatCss("all.components.css"))
     .pipe(gulp.dest('dist/components'));
 });
  
