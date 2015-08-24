@@ -16,7 +16,7 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 <h2>Gulp Stuff</h2>
 
 <ul>
-	<li>Injects script and stylesheet tags into `index.html` for bower dependencies.</li>
+	<li>Injects script and stylesheet tags into <code>index.html</code> for bower dependencies.</li>
 	<li>Combines and uglifies js and css for angular components</li>
 </ul>
 
