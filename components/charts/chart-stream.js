@@ -5,14 +5,14 @@ angular.module('cossap.charts.stream', [])
 
 .directive('chartStream', [function() {
 	return {
-		templateUrl : 'components/charts/stream-chart.html',
+		templateUrl : 'components/charts/chart-stream.html',
 		controller : 'streamChartController'
 	};
 }])
 
 
-.controller('streamChartController', ['$scope', 'cossapChartState', 'streamChartService', 
-	function($scope, cossapChartState, streamChartService) {
+.controller('streamChartController', ['$scope', 'cossapChartState',
+	function($scope, cossapChartState) {
 
 	
 	$scope.cossapChartState = cossapChartState;

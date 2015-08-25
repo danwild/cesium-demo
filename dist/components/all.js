@@ -147,33 +147,18 @@ angular.module('cossap.catalogue', [])
 
 'use strict';
 
-angular.module('cossap.charts', [])
+/**
+
+	Just an ng html wrap so we can hook into the layout for different app states
+
+*/
+angular.module('cossap.cesiumpanel', [])
 
 
-.directive('cossapChartPanel', [function() {
-	return {
-		templateUrl : 'components/charts/charts.html',
-		controller : 'cossapChartController'
-	};
-}])
-
-
-.controller('cossapChartController', ['$scope', 'cossapChartState', 
+.controller('CesiumPanelController', ['$scope', 'cossapChartState',
 	function($scope, cossapChartState) {
 
-	
-	$scope.cossapChartState = cossapChartState;
-
-}])
-
-.factory('cossapChartState', [function() {
-
-	var state = {};
-
-	state.chartPanel = true;
-	state.streamChart = false;
-
-	return state;
+		$scope.cossapChartState = cossapChartState;
 
 }]);
 
@@ -184,14 +169,14 @@ angular.module('cossap.charts.stream', [])
 
 .directive('chartStream', [function() {
 	return {
-		templateUrl : 'components/charts/stream-chart.html',
+		templateUrl : 'components/charts/chart-stream.html',
 		controller : 'streamChartController'
 	};
 }])
 
 
-.controller('streamChartController', ['$scope', 'cossapChartState', 'streamChartService', 
-	function($scope, cossapChartState, streamChartService) {
+.controller('streamChartController', ['$scope', 'cossapChartState',
+	function($scope, cossapChartState) {
 
 	
 	$scope.cossapChartState = cossapChartState;
@@ -225,17 +210,32 @@ angular.module('cossap.charts.stream', [])
 }]);
 'use strict';
 
-/**
-
-	Just an ng html wrap so we can hook into the layout for different app states
-
-*/
-angular.module('cossap.cesiumpanel', [])
+angular.module('cossap.charts', [])
 
 
-.controller('CesiumPanelController', ['$scope', 'cossapChartState',
+.directive('cossapChartPanel', [function() {
+	return {
+		templateUrl : 'components/charts/charts.html',
+		controller : 'cossapChartController'
+	};
+}])
+
+
+.controller('cossapChartController', ['$scope', 'cossapChartState', 
 	function($scope, cossapChartState) {
 
-		$scope.cossapChartState = cossapChartState;
+	
+	$scope.cossapChartState = cossapChartState;
+
+}])
+
+.factory('cossapChartState', [function() {
+
+	var state = {};
+
+	state.chartPanel = true;
+	state.streamChart = false;
+
+	return state;
 
 }]);
