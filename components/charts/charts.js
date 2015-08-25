@@ -7,7 +7,7 @@ angular.module('cossap.charts', [])
 	return {
 		templateUrl : 'components/charts/charts.html',
 		controller : 'cossapChartController'
-	};
+	};e
 }])
 
 

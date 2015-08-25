@@ -2,12 +2,9 @@
 #chartPanel {
 
 	width: auto;
-	height: 40%;
+	height: 35%;
 	margin: 0; 
 	padding: 20px; 
 	overflow: hidden;
-	position: absolute;
-	bottom: 0;
-	z-index: 2;
-
+	border-left: 2px solid #000;
 }

@@ -10,13 +10,9 @@ angular.module('cossap.charts.stream', [])
 	};
 }])
 
-
-.controller('streamChartController', ['$scope', 'cossapChartState',
-	function($scope, cossapChartState) {
-
+.controller('streamChartController', ['$scope', 'cossapChartState', function($scope, cossapChartState) {
 	
 	$scope.cossapChartState = cossapChartState;
-
 
 }])
 
@@ -26,14 +22,13 @@ angular.module('cossap.charts.stream', [])
 
 	var service = {};
 
-
 	service.initChart = function(){
 
 		console.log("initChart..");
 
-		cossapChartState.chartPanel = true;
-
-		// safe apply
+        cossapChartState.chartPanel = true;
+        
+        // safe apply
         if(!$rootScope.$$phase) {
         	$rootScope.$apply();
         }
