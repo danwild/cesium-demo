@@ -2,7 +2,12 @@
 @import url(../bower_components/cesium/Cesium/Widgets/widgets.css);
 
 html, body {
-    width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+    width: 100%; 
+    height: 100%; 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden;
+    background: rgba(84, 84, 84, 1.0);
 }
 
 #cesiumContainer {
@@ -11,6 +16,7 @@ html, body {
 	margin: 0; 
 	padding: 0; 
 	overflow: hidden;
+	transition: height .5s ease;
 }
 
 .compressedPanel60 {

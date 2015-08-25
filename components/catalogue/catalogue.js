@@ -29,6 +29,27 @@ angular.module('cossap.catalogue', [])
 		streamChartService.initChart();
 	};
 
+	$scope.demoPoly = function(){
+
+		var orangePolygon = _viewer.entities.add({
+		    name : 'Orange polygon with per-position heights and outline',
+		    polygon : {
+		        hierarchy : Cesium.Cartesian3.fromDegreesArrayHeights([138.0, -25.0, 100000,
+		                                                               130.0, -25.0, 100000,
+		                                                               130.0, -20.0, 100000,
+		                                                               138.0, -20.0, 300000]),
+		        extrudedHeight: 0,
+		        perPositionHeight : true,
+		        material : Cesium.Color.ORANGE.withAlpha(0.5),
+		        outline : true,
+		        outlineColor : Cesium.Color.BLACK
+		    }
+		});
+
+		_viewer.zoomTo(_viewer.entities);
+
+	};
+
 	$scope.addClickCanvas = function(){
 
 		canvas.onclick = function() {

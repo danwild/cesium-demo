@@ -36,6 +36,16 @@ angular.module('cossap.charts.stream', [])
 
         /*---------------------------------------- D3 -----------------------------------------*/
 
+  		// #8dd3c7
+		// #ffffb3
+		// #bebada
+		// #fb8072
+		// #80b1d3
+		// #fdb462
+		// #b3de69
+		// #fccde5
+		// #d9d9d9
+
         var margin = {top: 0, right: 100, bottom: 30, left: 100},
           width  = 1000,
           height = 320  - margin.top  - margin.bottom;
@@ -67,7 +77,13 @@ angular.module('cossap.charts.stream', [])
 	          .y1(function (d) { return y(d.y0 + d.y); });
 
 	      var color = d3.scale.ordinal()
-	          .range(["#001c9c","#101b4d","#475003","#9c8305","#d3c47c"]);
+	          .range([
+	          	'#8dd3c7',
+				'#ffffb3',
+				'#bebada',
+				'#fb8072',
+				'#80b1d3'
+			]);
 
 	      var svg = d3.select("#streamChartD3").append("svg")
 	          .attr("width",  width  + margin.left + margin.right)
@@ -117,6 +133,7 @@ angular.module('cossap.charts.stream', [])
 	            .attr("y", 6)
 	            .attr("dy", ".71em")
 	            .style("text-anchor", "end")
+	            .style("fill", "#FFF")
 	            .text("Number of Rounds");
 
 	        var selection = svg.selectAll(".series")
@@ -164,6 +181,7 @@ angular.module('cossap.charts.stream', [])
 	            .attr("y", 6)
 	            .attr("dy", ".35em")
 	            .style("text-anchor", "end")
+	            .style("fill", "#FFF")
 	            .text(function (d) { return d; });
 
 	        function removePopovers () {
