@@ -23,7 +23,7 @@ angular.module('cossap.charts', [])
 
 	var state = {};
 
-	state.chartPanel = true;
+	state.chartPanel = false;
 	state.streamChart = false;
 
 	return state;

@@ -13,9 +13,27 @@
 }
 #chartPanel {
   width: auto;
-  height: 35%;
+  height: 40%;
   margin: 0;
   padding: 20px;
-  overflow: hidden;
+  overflow: auto;
   border-left: 2px solid #000;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #121401;
+  stroke-width: 2px;
+  shape-rendering: crispEdges;
+}
+
+.point {
+  stroke: grey;
+  stroke-width: 3px;
+  opacity: 0;
+}
+
+.point:hover {
+  opacity: .5;
 }

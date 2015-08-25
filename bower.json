@@ -19,6 +19,7 @@
     "angular-bootstrap": "~0.13.3",
     "bootstrap": "3.3.4",
     "cesium": "cesiumjs#~1.12.0",
+    "d3": "~3.5.6",
     "font-awesome": "fontawesome#~4.4.0",
     "font-awesome-min": "~4.3.0",
     "jquery": "~1.11.1"
