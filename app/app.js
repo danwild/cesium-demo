@@ -1,6 +1,9 @@
 angular.module('cossapDemo', [
 
-    'cossap.catalogue'
+    'cossap.catalogue',
+    'cossap.charts',
+    'cossap.charts.stream',
+    'cossap.cesiumpanel'
 
   ]
 );

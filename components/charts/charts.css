@@ -1,0 +1,13 @@
+
+#chartPanel {
+
+	width: auto;
+	height: 40%;
+	margin: 0; 
+	padding: 20px; 
+	overflow: hidden;
+	position: absolute;
+	bottom: 0;
+	z-index: 2;
+
+}

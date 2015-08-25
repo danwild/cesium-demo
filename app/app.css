@@ -13,6 +13,11 @@ html, body {
 	overflow: hidden;
 }
 
+.compressedPanel60 {
+	height: 60%;
+}
+
+
 /* NAVY */
 .navy-bg { 
 	background-color: rgba(84, 84, 84, 1.0);

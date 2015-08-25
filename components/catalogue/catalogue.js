@@ -11,7 +11,8 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', function($scope) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService',
+ function($scope, streamChartService) {
 
 	
 	var layers = _viewer.scene.imageryLayers;
@@ -25,7 +26,7 @@ angular.module('cossap.catalogue', [])
 
 	$scope.demoGraph = function(){
 
-		// init graph
+		streamChartService.initChart();
 	};
 
 	$scope.addClickCanvas = function(){

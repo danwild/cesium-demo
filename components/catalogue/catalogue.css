@@ -9,7 +9,8 @@
 	color: #fbfbfb;
 	padding: 20px 20px;
 	display: block;
-	-webkit-box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);
--moz-box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);
-box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);
+	/*-webkit-box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);
+	-moz-box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);
+	box-shadow: 3px 0px 5px 0px rgba(0,0,0,0.75);*/
+	overflow-y: auto;
 }

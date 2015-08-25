@@ -11,7 +11,8 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', function($scope) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService',
+ function($scope, streamChartService) {
 
 	
 	var layers = _viewer.scene.imageryLayers;
@@ -25,7 +26,7 @@ angular.module('cossap.catalogue', [])
 
 	$scope.demoGraph = function(){
 
-		// init graph
+		streamChartService.initChart();
 	};
 
 	$scope.addClickCanvas = function(){
@@ -141,5 +142,100 @@ angular.module('cossap.catalogue', [])
 		myBoreholes.alpha = 1;
 	};
 
+
+}]);
+
+'use strict';
+
+angular.module('cossap.charts', [])
+
+
+.directive('cossapChartPanel', [function() {
+	return {
+		templateUrl : 'components/charts/charts.html',
+		controller : 'cossapChartController'
+	};
+}])
+
+
+.controller('cossapChartController', ['$scope', 'cossapChartState', 
+	function($scope, cossapChartState) {
+
+	
+	$scope.cossapChartState = cossapChartState;
+
+}])
+
+.factory('cossapChartState', [function() {
+
+	var state = {};
+
+	state.chartPanel = true;
+	state.streamChart = false;
+
+	return state;
+
+}]);
+
+'use strict';
+
+angular.module('cossap.charts.stream', [])
+
+
+.directive('chartStream', [function() {
+	return {
+		templateUrl : 'components/charts/stream-chart.html',
+		controller : 'streamChartController'
+	};
+}])
+
+
+.controller('streamChartController', ['$scope', 'cossapChartState', 'streamChartService', 
+	function($scope, cossapChartState, streamChartService) {
+
+	
+	$scope.cossapChartState = cossapChartState;
+
+
+}])
+
+
+
+.factory('streamChartService', ['$rootScope', 'cossapChartState', function($rootScope, cossapChartState) {
+
+	var service = {};
+
+
+	service.initChart = function(){
+
+		console.log("initChart..");
+
+		cossapChartState.chartPanel = true;
+
+		// safe apply
+        if(!$rootScope.$$phase) {
+        	$rootScope.$apply();
+        }
+	};
+
+
+	
+	return service;
+
+}]);
+'use strict';
+
+/**
+
+	Just an ng html wrap so we can hook into the layout for different app states
+
+*/
+angular.module('cossap.cesiumpanel', [])
+
+
+.controller('CesiumPanelController', ['$scope', 'cossapChartState',
+	function($scope, cossapChartState) {
+
+		$scope.cossapChartState = cossapChartState;
 
 }]);
