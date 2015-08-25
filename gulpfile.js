@@ -40,7 +40,7 @@ gulp.task('componentScripts', function() {
  
 // Watch Files For Changes
 gulp.task('watch', function() {
-    gulp.watch('components/**/*.js', ['lint', 'scripts']);
+    gulp.watch('components/**/*.js', ['componentScripts']);
     gulp.watch('components/**/*.css', ['concatCss']);
     //gulp.watch('components/**/*.html', ['templates']);
     //gulp.watch('scss/*.scss', ['sass']);
@@ -59,7 +59,7 @@ gulp.task('default', [
     'injectAssets', 
     'componentScripts', 
     'concatCss', 
-    //'watch'
+    'watch'
 
 ]);
 

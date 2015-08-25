@@ -14,11 +14,46 @@ angular.module('cossap.catalogue', [])
 .controller('cossapCatalogueController', ['$scope', function($scope) {
 
 	
-	var layers = viewer.scene.imageryLayers;
-	
+	var layers = _viewer.scene.imageryLayers;
+	var canvas = _viewer.canvas;
+	var ellipsoid = _viewer.scene.globe.ellipsoid;
+
 	var myWms;
 	var myTiles;
 	var myBoreholes;
+
+
+	$scope.demoGraph = function(){
+
+		// init graph
+	};
+
+	$scope.addClickCanvas = function(){
+
+		canvas.onclick = function() {
+		    console.log("CLICK");
+		};
+	};
+
+	$scope.clickHandlerLocation = function(){
+
+		var handler = new Cesium.ScreenSpaceEventHandler(canvas);
+		var mousePosition;
+
+		handler.setInputAction(function(movement) {
+		    
+			console.log(movement);
+
+		    mousePosition = Cesium.Cartesian3.clone(movement.position);
+
+		    var cartographicPosition = Cesium.Ellipsoid.WGS84.cartesianToCartographic(mousePosition);
+
+		    console.log("Cesium.Cartesian mousePosition "+mousePosition);
+		    console.log("Cesium.Cartographic mousePosition "+cartographicPosition);
+
+		}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+	};
 	
 	$scope.rest = function(){
 
@@ -84,7 +119,7 @@ angular.module('cossap.catalogue', [])
 		var layer = "gsmlp:BoreholeView";
 
 		var wmsCallback = function(){
-			console.log("CALLBACK! :)");
+			console.log("CALLBACK.. only fires when no features returned...");
 		};
 
 
@@ -98,7 +133,7 @@ angular.module('cossap.catalogue', [])
             },
             enablePickFeatures: true, // enable GetFeatureInfo()
 
-            getFeatureInfoFormats: new GetFeatureInfoFormat('json', 'application/json')
+            getFeatureInfoFormats: [new Cesium.GetFeatureInfoFormat('json', 'application/json', wmsCallback)]
             
 
         }));

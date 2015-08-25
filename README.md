@@ -4,16 +4,16 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 <h2>Get started</h2>
 
 <p>Install npm dependencies:</p>
-`npm install`
+`$ npm install`
 
 <p>Install bower dependencies:</p>
-`bower install`
+`$ bower install`
 
 <p>Build:</p>
-`gulp`
+`$ gulp`
 
 <p>Run:</p>
-`node server.js` (just using the express server that comes with cesium)
+`$ node server.js` (just using the express server that comes with cesium)
 
 <p><a href="http://localhost:8080/" target="_blank">http://localhost:8080/</a></p>
 
@@ -22,6 +22,7 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 
 <ul>
 	<li>Injects script and stylesheet tags into <code>index.html</code> for bower dependencies.</li>
+	<li>Uses `main-bower-files` to read in bower main files</li>
 	<li>Combines and uglifies js and css for angular components</li>
 </ul>
 
@@ -37,5 +38,6 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 
 <ul>
 	<li>Had issues with gulp using bootstrap 3.3.5 (main file/s not set correctly for css for bower), have rolled back to 3.3.4.</li>
+	<li>Switched to `font-awesome-min` fork which just uses css as bowers `font-awesome` wants lESS/SCSS. Update to main pkg when I get with the program...</li>
 	<li>Did try combining all js assets into one file to be minified, but tended to cause conflicts so sticking with uglier but more reliable inject script tag method.</li>
 </ul>

@@ -20,6 +20,7 @@
     "bootstrap": "3.3.4",
     "cesium": "cesiumjs#~1.12.0",
     "font-awesome": "fontawesome#~4.4.0",
+    "font-awesome-min": "~4.3.0",
     "jquery": "~1.11.1"
   }
 }

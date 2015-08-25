@@ -1,11 +1,13 @@
 
 // init cesium
-var viewer = new Cesium.Viewer('cesiumContainer', {
- mapProjection : new Cesium.GeographicProjection(),
- timeline: false,
- sceneModePicker: false,
- animation: false
+var _viewer = new Cesium.Viewer('cesiumContainer', {
+	mapProjection : new Cesium.WebMercatorProjection(),
+	timeline: false,
+	sceneModePicker: false,
+	animation: false
 });
+
+
 
 var homeCamera = {
 "north": -8,
@@ -17,7 +19,7 @@ var homeCamera = {
 // set aus extent, and assign default for home button etc.
 var ausExtent = Cesium.Rectangle.fromDegrees(homeCamera.west, homeCamera.south, homeCamera.east, homeCamera.north);
 
-viewer.camera.viewRectangle(ausExtent);
+_viewer.camera.viewRectangle(ausExtent);
 
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = ausExtent;
 
@@ -25,4 +27,4 @@ Cesium.Camera.DEFAULT_VIEW_RECTANGLE = ausExtent;
 var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
  url : '//assets.agi.com/stk-terrain/world'
 });
-viewer.terrainProvider = cesiumTerrainProvider;
+_viewer.terrainProvider = cesiumTerrainProvider;
