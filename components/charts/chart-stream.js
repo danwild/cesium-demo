@@ -11,7 +11,7 @@ angular.module('cossap.charts.stream', [])
 }])
 
 .controller('streamChartController', ['$scope', 'cossapChartState', function($scope, cossapChartState) {
-	
+
 	$scope.cossapChartState = cossapChartState;
 
 }])
@@ -25,6 +25,8 @@ angular.module('cossap.charts.stream', [])
 	service.initChart = function(){
 
 		console.log("initChart..");
+
+
 
 		if(cossapChartState.chartPanel){
 			cossapChartState.chartPanel = false;
@@ -207,7 +209,7 @@ angular.module('cossap.charts.stream', [])
 	      });
 
 
-        /*---------------------------------------- D3 -----------------------------------------*/
+        /*---------------------------------------- /D3 -----------------------------------------*/
 
         
         // safe apply

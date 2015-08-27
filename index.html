@@ -14,6 +14,7 @@
     <!-- INJECTED CSS ASSETS -->
     <!-- inject:css -->
     <link rel="stylesheet" href="/bower_components/cesium/Cesium/Widgets/widgets.css">
+    <link rel="stylesheet" href="/bower_components/cesium-drawtools/DrawHelper.css">
     <link rel="stylesheet" href="/bower_components/font-awesome-min/css/font-awesome.min.css">
     <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.css">
     <!-- endinject -->
@@ -24,6 +25,7 @@
     <script src="/bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
     <script src="/bower_components/jquery/dist/jquery.js"></script>
     <script src="/bower_components/cesium/Cesium/Cesium.js"></script>
+    <script src="/bower_components/cesium-drawtools/DrawHelper.js"></script>
     <script src="/bower_components/d3/d3.js"></script>
     <script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <!-- endinject -->
@@ -38,21 +40,18 @@
 
 
 
-
+    <!-- THE GUTS -->
     
     <cossap-catalogue></cossap-catalogue>
 
     <div id="cesiumContainer" ng-controller="CesiumPanelController" ng-class="{ compressedPanel60: cossapChartState.chartPanel }"></div>
     
-    
     <cossap-chart-panel></cossap-chart-panel>
 
-    
 
+    <div id="toolbar">
 
-
-
-
+    <div id="logging"></div>
 
 
     <script src="app/app-cesium.js"></script>

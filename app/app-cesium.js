@@ -10,10 +10,10 @@ var _viewer = new Cesium.Viewer('cesiumContainer', {
 
 
 var homeCamera = {
-"north": -8,
-"east": 158,
-"south": -45,
-"west": 109
+	"north": -8,
+	"east": 158,
+	"south": -45,
+	"west": 109
 }
 
 // set aus extent, and assign default for home button etc.
@@ -27,4 +27,5 @@ Cesium.Camera.DEFAULT_VIEW_RECTANGLE = ausExtent;
 var cesiumTerrainProvider = new Cesium.CesiumTerrainProvider({
  url : '//assets.agi.com/stk-terrain/world'
 });
+
 _viewer.terrainProvider = cesiumTerrainProvider;

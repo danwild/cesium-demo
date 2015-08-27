@@ -11,18 +11,38 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', 'streamChartService',
- function($scope, streamChartService) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService',
+ function($scope, streamChartService, drawHelperService) {
 
+
+	$scope.drawHelperService = drawHelperService;
 	
 	var layers = _viewer.scene.imageryLayers;
 	var canvas = _viewer.canvas;
 	var ellipsoid = _viewer.scene.globe.ellipsoid;
 
+
 	var myWms;
 	var myTiles;
 	var myBoreholes;
 
+	 $scope.callDrawLine = function(){
+
+		var myDrawCallback = function(entity){
+			console.log("myDrawCallback");
+			console.log(entity);
+		};
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true,
+			 width: 5,
+	  		 geodesic: true
+		 };
+
+		 $scope.drawHelperService.drawLine(options);
+
+	 };
 
 	$scope.demoGraph = function(){
 

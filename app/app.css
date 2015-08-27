@@ -23,8 +23,32 @@ html, body {
 	height: 60% !important;
 }
 
+.block {
+    display: block;
+}
+
 
 /* NAVY */
 .navy-bg { 
 	background-color: rgba(84, 84, 84, 1.0);
 }
+
+
+/*DrawHelper*/
+/*#toolbar {*/
+
+    /*position: absolute;*/
+    /*right: 10px;*/
+    /*top: 50px;*/
+/*}*/
+
+#logging {
+    position: fixed;
+    bottom: 0px;
+    right: 0;
+    display: inline;
+    margin: 10px;
+    padding: 10px;
+    background: white;
+}
+/* /DrawHelper */

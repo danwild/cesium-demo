@@ -20,7 +20,6 @@ gulp.task('lint', function() {
  
 
 gulp.task('injectAssets', function () {
-
     var target = gulp.src('index.html');
     return target.pipe(inject(gulp.src(mainBowerFiles(), {read: false})))
     .pipe(gulp.dest(''));

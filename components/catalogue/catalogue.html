@@ -3,42 +3,50 @@
 	
 	
 	
-		<h3>Map Layers</h3>
-		<br/>
-		
-		<p>
-			<button ng-click="rest()" class="btn btn-default">ArcGIS</button>
-		</p>
-		
-		<p>
-			Comes with free GetFeatureInfo inspector..
-			<button ng-click="wms()" class="btn btn-default">WMS with Alpha</button>
-		</p>
-	
-		<p>
-			<button ng-click="boreholes()" class="btn btn-default">Boreholes (WMS callback)</button>
-		</p>
+    <h3>Map Layers</h3>
+    <br/>
 
-		<p>
-			<button ng-click="addClickCanvas()" class="btn btn-default">Add Map Click Handler direct to Canvas</button>
-		</p>
+    <p>
+        <button ng-click="rest()" class="btn btn-default">ArcGIS cache</button>
+    </p>
 
-		<p>
-			<button ng-click="clickHandlerLocation()" class="btn btn-default">Add ScreenSpaceEventHandler <br/>(get click screen location)</button>
-		</p>
+    <p>
+        Comes with free GetFeatureInfo inspector..
+        <button ng-click="wms()" class="btn btn-default">WMS with Alpha</button>
+    </p>
 
-		<p>
-			<button ng-click="demoGraph()" class="btn btn-default">Demo Stream Graph <i class="fa fa-area-chart"></i></button>
-		</p>
+    <p>
+        <button ng-click="boreholes()" class="btn btn-default">Boreholes WMS</button>
+    </p>
 
-		<p>
-			<button ng-click="demoPoly()" class="btn btn-default">Demo 3d Polygon <i class="fa fa-pie-chart"></i></button>
-		</p>
-		
+    <p>
+        <button ng-click="addClickCanvas()" class="btn btn-default">Add Map Click Handler direct to Canvas</button>
+    </p>
 
-		<h3>Notes:</h3>
+    <p>
+        <button ng-click="clickHandlerLocation()" class="btn btn-default">Add ScreenSpaceEventHandler <br/>(get click location)</button>
+    </p>
 
-		Looks like we will need to do a bit of leg work with some basic functions we might take for granted...<br/> 
-		e.g. no provided function for WMSGetFeatureInfo() beyond the one provided by WebMapServiceImageryProvider, NICTA had to take another approach: <a href="https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ">https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ</a>
+    <p>
+        <button ng-click="drawHelperService.init()" class="btn btn-default">Draw Stuff.. <i class="fa fa-pencil"></i></button>
+    </p>
+
+    <p>
+        <button ng-show="drawHelperService.active" ng-click="callDrawLine()" class="btn btn-default">Draw PolyLine.. <i class="fa fa-minus"></i></button>
+    </p>
+
+    <p>
+        <button ng-click="demoGraph()" class="btn btn-default">Demo Stream Graph <i class="fa fa-area-chart"></i></button>
+    </p>
+
+    <p>
+        <button ng-click="demoPoly()" class="btn btn-default">Demo 3d Polygon <i class="fa fa-pie-chart"></i></button>
+    </p>
+
+
+    <h3>Notes:</h3>
+
+    Looks like we will need to do a bit of leg work with some basic functions we might take for granted...<br/>
+    e.g. no provided function for WMSGetFeatureInfo() beyond the one provided by WebMapServiceImageryProvider, NICTA had to take another approach: <a href="https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ">https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ</a>
 
 </div>
