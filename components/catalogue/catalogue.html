@@ -28,11 +28,16 @@
     </p>
 
     <p>
-        <button ng-click="drawHelperService.init()" class="btn btn-default">Draw Stuff.. <i class="fa fa-pencil"></i></button>
+        <button ng-click="initDrawTools()" class="btn btn-default">Draw Stuff.. <i class="fa fa-pencil"></i></button>
     </p>
 
-    <p>
-        <button ng-show="drawHelperService.active" ng-click="callDrawLine()" class="btn btn-default">Draw PolyLine.. <i class="fa fa-minus"></i></button>
+    <p ng-show="drawHelperService.active">
+        <button ng-click="callDrawMarker()" class="btn btn-default">Draw Marker.. <i class="fa fa-map-marker"></i></button>
+        <button ng-click="callDrawLine()" class="btn btn-default">Draw Polyline.. <i class="fa fa-minus"></i></button>
+        <button ng-click="callDrawPoly()" class="btn btn-default">Draw Polygon.. <i class="fa fa-bookmark-o"></i></button>
+        <button ng-click="callDrawExtent()" class="btn btn-default">Draw Extent.. <i class="fa fa-square-o"></i></button>
+        <button ng-click="callDrawCircle()" class="btn btn-default">Draw Circle.. <i class="fa fa-circle-o"></i></button>
+        <button ng-click="drawHelperService.removeAllPrimitives()" class="btn btn-default">Remove all.. <i class="fa fa-trash"></i></button>
     </p>
 
     <p>

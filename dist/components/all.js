@@ -26,22 +26,60 @@ angular.module('cossap.catalogue', [])
 	var myTiles;
 	var myBoreholes;
 
-	 $scope.callDrawLine = function(){
+	 var myDrawCallback = function(entity){
+		 console.log("myDrawCallback");
+		 console.log(entity);
+	 };
 
-		var myDrawCallback = function(entity){
-			console.log("myDrawCallback");
-			console.log(entity);
-		};
+	 $scope.initDrawTools = function(){
+		 $scope.drawHelperService.init(_viewer);
+	 };
+
+	 $scope.callDrawMarker = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 imgUrl: 'http://localhost:8080/bower_components/cesium-drawtools/img/dragIcon.png'
+		 };
+		 $scope.drawHelperService.drawMarker(options);
+	 };
+
+	 $scope.callDrawLine = function(){
 
 		 var options = {
 			 callback: myDrawCallback,
 			 editable: true,
 			 width: 5,
-	  		 geodesic: true
+	         geodesic: true
 		 };
+		 $scope.drawHelperService.drawPolyline(options);
+	};
 
-		 $scope.drawHelperService.drawLine(options);
+	$scope.callDrawPoly = function(){
 
+		var options = {
+			callback: myDrawCallback,
+			editable: true
+		};
+		$scope.drawHelperService.drawPolygon(options);
+	};
+
+	 $scope.callDrawExtent = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawExtent(options);
+	 };
+
+	 $scope.callDrawCircle = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawCircle(options);
 	 };
 
 	$scope.demoGraph = function(){
@@ -186,201 +224,6 @@ angular.module('cossap.catalogue', [])
 
 }]);
 
-'use strict';
-
-/**
-
-	Just an ng html wrap so we can hook into the layout for different app states
-
-*/
-angular.module('cossap.cesiumpanel', [])
-
-
-.controller('CesiumPanelController', ['$scope', 'cossapChartState',
-	function($scope, cossapChartState) {
-
-		$scope.cossapChartState = cossapChartState;
-
-}]);
-
-/**
- * Created by danielwild on 26/08/2015.
- */
-
-'use strict';
-
-angular.module('cossap.drawhelper', [])
-
-
-.factory('drawHelperService', [function() {
-
-	var service = {};
-
-	service.active = false;
-	service.drawHelper;
-	service.scene;
-	service.loggingMessage;
-
-
-	/**
-	 *
-	 * Wrapper for DrawHelper.startDrawingPolyline
-	 *
-     * @param options
-	 *
-	 * options.callback (returns the created entity)
-	 * options.editable
-	 * options.width
-	 * options.geodesic
-	 *
-	 */
-
-	service.drawLine = function(options){
-
-		service.active = true;
-
-		service.drawHelper.startDrawingPolyline({
-
-			callback: function(positions) {
-
-				service.loggingMessage('Polyline created with ' + positions.length + ' points');
-				var polyline = new DrawHelper.PolylinePrimitive({
-					positions: positions,
-					width: options.width || 5,
-					geodesic: options.hasOwnProperty("geodesic") ? options.geodesic : true
-				});
-				service.scene.primitives.add(polyline);
-
-				if(options.hasOwnProperty("editable") && options.editable){
-
-					polyline.setEditable();
-					polyline.addListener('onEdited', function(event) {
-						service.loggingMessage('Polyline edited, ' + event.positions.length + ' points');
-					});
-				}
-
-				options.callback(polyline);
-			}
-		});
-	};
-
-
-	service.init = function(){
-
-		console.log("init drawhlper..");
-
-		service.active = true;
-
-		// create the scence for our shapes
-		service.scene = _viewer.scene;
-
-		// start the draw helper to enable shape creation and editing
-		service.drawHelper = new DrawHelper(_viewer);
-
-		// init logging
-		var logging = document.getElementById('logging');
-		service.loggingMessage = function(message) {
-			logging.innerHTML = message;
-		}
-
-
-		//var toolbar = service.drawHelper.addToolbar(document.getElementById("toolbar"), {
-		//	buttons: ['marker', 'polyline', 'polygon', 'circle', 'extent']
-		//});
-		//toolbar.addListener('markerCreated', function(event) {
-		//	loggingMessage('Marker created at ' + event.position.toString());
-		//	// create one common billboard collection for all billboards
-		//	var b = new Cesium.BillboardCollection();
-		//	scene.primitives.add(b);
-		//	var billboard = b.add({
-		//		show : true,
-		//		position : event.position,
-		//		pixelOffset : new Cesium.Cartesian2(0, 0),
-		//		eyeOffset : new Cesium.Cartesian3(0.0, 0.0, 0.0),
-		//		horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
-		//		verticalOrigin : Cesium.VerticalOrigin.CENTER,
-		//		scale : 1.0,
-		//		image: './img/glyphicons_242_google_maps.png',
-		//		color : new Cesium.Color(1.0, 1.0, 1.0, 1.0)
-		//	});
-		//	billboard.setEditable();
-		//});
-		//toolbar.addListener('polylineCreated', function(event) {
-		//	loggingMessage('Polyline created with ' + event.positions.length + ' points');
-		//	var polyline = new DrawHelper.PolylinePrimitive({
-		//		positions: event.positions,
-		//		width: 5,
-		//		geodesic: true
-		//	});
-		//	scene.primitives.add(polyline);
-		//	polyline.setEditable();
-		//	polyline.addListener('onEdited', function(event) {
-		//		loggingMessage('Polyline edited, ' + event.positions.length + ' points');
-		//	});
-		//
-		//});
-		//toolbar.addListener('polygonCreated', function(event) {
-		//	loggingMessage('Polygon created with ' + event.positions.length + ' points');
-		//	var polygon = new DrawHelper.PolygonPrimitive({
-		//		positions: event.positions,
-		//		material : Cesium.Material.fromType('Checkerboard')
-		//	});
-		//	scene.primitives.add(polygon);
-		//	polygon.setEditable();
-		//	polygon.addListener('onEdited', function(event) {
-		//		loggingMessage('Polygon edited, ' + event.positions.length + ' points');
-		//	});
-		//
-		//});
-		//toolbar.addListener('circleCreated', function(event) {
-		//	loggingMessage('Circle created: center is ' + event.center.toString() + ' and radius is ' + event.radius.toFixed(1) + ' meters');
-		//	var circle = new DrawHelper.CirclePrimitive({
-		//		center: event.center,
-		//		radius: event.radius,
-		//		material: Cesium.Material.fromType(Cesium.Material.RimLightingType)
-		//	});
-		//	scene.primitives.add(circle);
-		//	circle.setEditable();
-		//	circle.addListener('onEdited', function(event) {
-		//		loggingMessage('Circle edited: radius is ' + event.radius.toFixed(1) + ' meters');
-		//	});
-		//});
-		//toolbar.addListener('extentCreated', function(event) {
-		//	var extent = event.extent;
-		//	loggingMessage('Extent created (N: ' + extent.north.toFixed(3) + ', E: ' + extent.east.toFixed(3) + ', S: ' + extent.south.toFixed(3) + ', W: ' + extent.west.toFixed(3) + ')');
-		//	var extentPrimitive = new DrawHelper.ExtentPrimitive({
-		//		extent: extent,
-		//		material: Cesium.Material.fromType(Cesium.Material.StripeType)
-		//	});
-		//	scene.primitives.add(extentPrimitive);
-		//	extentPrimitive.setEditable();
-		//	extentPrimitive.addListener('onEdited', function(event) {
-		//		loggingMessage('Extent edited: extent is (N: ' + event.extent.north.toFixed(3) + ', E: ' + event.extent.east.toFixed(3) + ', S: ' + event.extent.south.toFixed(3) + ', W: ' + event.extent.west.toFixed(3) + ')');
-		//	});
-		//});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	};
-
-
-	return service;
-
-}])
 'use strict';
 
 angular.module('cossap.charts.stream', [])
@@ -637,3 +480,298 @@ angular.module('cossap.charts', [])
 	return state;
 
 }]);
+
+'use strict';
+
+/**
+
+	Just an ng html wrap so we can hook into the layout for different app states
+
+*/
+angular.module('cossap.cesiumpanel', [])
+
+
+.controller('CesiumPanelController', ['$scope', 'cossapChartState',
+	function($scope, cossapChartState) {
+
+		$scope.cossapChartState = cossapChartState;
+
+}]);
+
+/**
+ * Created by danielwild on 26/08/2015.
+ */
+
+'use strict';
+
+angular.module('cesium.drawhelper', [])
+
+/**
+ * A collection of helper functions for drawing shapes etc.
+ *
+ * > Point Marker
+ * > PolyLine
+ * > Polygon
+ * > Extent (rectangle)
+ * > Circle
+ *
+ */
+.factory('drawHelperService', [function() {
+
+	var service = {};
+
+	service.active = false;
+	service.drawHelper;
+	service.scene;
+	service.loggingMessage;
+
+	// reuse our shape material
+	var material = Cesium.Material.fromType(Cesium.Material.ColorType);
+	material.uniforms.color = new Cesium.Color(0, 0, 153, 0.4);
+
+	// create a collection to hold out primitives;
+	// keep the markers in withing their own nested billboard collection
+	var primitivesCollection = new Cesium.PrimitiveCollection();
+	var billboardCollection = new Cesium.BillboardCollection();
+
+	/**
+	 *
+     * @param cesiumWidget Object
+	 *
+	 * Should work with cesium viewer or widget
+	 *
+	 */
+	service.init = function(cesiumWidget) {
+
+		service.active = true;
+
+		// create the scene with a master PrimitivesCollection to hold our shapes
+		service.scene = cesiumWidget.scene;
+		primitivesCollection.add(billboardCollection);
+		service.scene.primitives.add(primitivesCollection);
+
+		// start the draw helper to enable shape creation and editing
+		service.drawHelper = new DrawHelper(cesiumWidget);
+
+		// init logging
+		var logging = document.getElementById('logging');
+		service.loggingMessage = function (message) {
+			logging.innerHTML = message;
+		}
+	};
+
+	/**
+	 *
+	 * Wrapper for DrawHelper.startDrawingMarker
+	 *
+	 * @param options Object
+	 *
+	 * options.callback (returns the created entity) REQUIRED
+	 * options.imgUrl
+	 *
+	 */
+	service.drawMarker = function(options){
+
+		service.active = true;
+
+		service.drawHelper.startDrawingMarker({
+
+			callback: function(position) {
+
+				service.loggingMessage('Marker created at ' + position.toString());
+
+				var billboard = billboardCollection.add({
+					show : true,
+					position : position,
+					pixelOffset : new Cesium.Cartesian2(0, 0),
+					eyeOffset : new Cesium.Cartesian3(0.0, 0.0, 0.0),
+					horizontalOrigin : Cesium.HorizontalOrigin.CENTER,
+					verticalOrigin : Cesium.VerticalOrigin.CENTER,
+					scale : 1.0,
+					image: options.imgUrl,
+					color : new Cesium.Color(1.0, 1.0, 1.0, 1.0)
+				});
+				billboard.setEditable();
+
+				options.callback(billboard);
+			}
+		});
+	};
+
+	/**
+	 *
+	 * Wrapper for DrawHelper.startDrawingPolyline
+	 *
+     * @param options Object
+	 *
+	 * options.callback (returns the created entity)
+	 * options.editable
+	 * options.width
+	 * options.geodesic
+	 *
+	 */
+	service.drawPolyline = function(options){
+
+		service.active = true;
+
+		service.drawHelper.startDrawingPolyline({
+
+			callback: function(positions) {
+
+				service.loggingMessage('Polyline created with ' + positions.length + ' points');
+				var polyline = new DrawHelper.PolylinePrimitive({
+					positions: positions,
+					width: options.width || 5,
+					geodesic: options.hasOwnProperty("geodesic") ? options.geodesic : true
+				});
+				primitivesCollection.add(polyline);
+
+				if(options.hasOwnProperty("editable") && options.editable){
+
+					polyline.setEditable();
+					polyline.addListener('onEdited', function(event) {
+						service.loggingMessage('Polyline edited, ' + event.positions.length + ' points');
+					});
+				}
+
+				options.callback(polyline);
+			}
+		});
+	};
+
+	/**
+	 *
+	 * Wrapper for DrawHelper.startDrawingPolygon
+	 *
+	 * @param options Object
+	 *
+	 * options.callback (returns the created entity) REQUIRED
+	 * options.editable
+	 *
+	 */
+	service.drawPolygon = function(options){
+
+		service.active = true;
+
+		service.drawHelper.startDrawingPolygon({
+
+			callback: function(positions) {
+
+				service.loggingMessage('Polygon created with ' + positions.length + ' points');
+
+				var polygon = new DrawHelper.PolygonPrimitive({
+					positions: positions,
+					material : material
+				});
+
+				primitivesCollection.add(polygon);
+
+				if(options.hasOwnProperty("editable") && options.editable) {
+
+					polygon.setEditable();
+					polygon.addListener('onEdited', function (event) {
+						console.log(event);
+						service.loggingMessage('Polygon edited, ' + event.positions.length + ' points');
+					});
+				}
+
+				options.callback(polygon);
+			}
+		});
+	};
+
+	/**
+	 *
+	 * Wrapper for DrawHelper.startDrawingPolygon
+	 *
+	 * @param options Object
+	 *
+	 * options.callback (returns the created entity) REQUIRED
+	 * options.editable
+	 *
+	 */
+	service.drawExtent = function(options){
+
+		service.active = true;
+
+		service.drawHelper.startDrawingExtent({
+
+			callback: function(extent) {
+
+				service.loggingMessage('Extent created (N: ' + extent.north.toFixed(3) + ', E: ' + extent.east.toFixed(3) + ', S: ' + extent.south.toFixed(3) + ', W: ' + extent.west.toFixed(3) + ')');
+
+				var extentPrimitive = new DrawHelper.ExtentPrimitive({
+					extent: extent,
+					material: material
+				});
+
+				primitivesCollection.add(extentPrimitive);
+
+				if(options.hasOwnProperty("editable") && options.editable) {
+
+					extentPrimitive.setEditable();
+					extentPrimitive.addListener('onEdited', function (event) {
+						service.loggingMessage('Extent edited: extent is (N: ' + event.extent.north.toFixed(3) + ', E: ' + event.extent.east.toFixed(3) + ', S: ' + event.extent.south.toFixed(3) + ', W: ' + event.extent.west.toFixed(3) + ')');
+					});
+				};
+
+				options.callback(extentPrimitive);
+			}
+		});
+	};
+
+	/**
+	 *
+	 * Wrapper for DrawHelper.startDrawingCircle
+	 *
+	 * @param options Object
+	 *
+	 * options.callback (returns the created entity) REQUIRED
+	 * options.editable
+	 *
+	 */
+	service.drawCircle = function(options){
+
+		service.active = true;
+
+		service.drawHelper.startDrawingCircle({
+
+			callback: function(center, radius) {
+
+				service.loggingMessage('Circle created: center is ' + center.toString() + ' and radius is ' + radius.toFixed(1) + ' meters');
+				var circle = new DrawHelper.CirclePrimitive({
+					center: center,
+					radius: radius,
+					material: material
+				});
+
+				primitivesCollection.add(circle);
+
+				if(options.hasOwnProperty("editable") && options.editable) {
+
+					circle.setEditable();
+					circle.addListener('onEdited', function (event) {
+						service.loggingMessage('Circle edited: radius is ' + event.radius.toFixed(1) + ' meters');
+					});
+				};
+
+				options.callback(circle);
+			}
+		});
+	};
+
+	service.removeAllPrimitives = function(){
+
+		primitivesCollection.removeAll();
+
+		// reset collections
+		primitivesCollection = new Cesium.PrimitiveCollection();
+		billboardCollection = new Cesium.BillboardCollection();
+		primitivesCollection.add(billboardCollection);
+		service.scene.primitives.add(primitivesCollection);
+	};
+
+
+	return service;
+
+}])

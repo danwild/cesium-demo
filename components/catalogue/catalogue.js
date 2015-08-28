@@ -26,22 +26,60 @@ angular.module('cossap.catalogue', [])
 	var myTiles;
 	var myBoreholes;
 
-	 $scope.callDrawLine = function(){
+	 var myDrawCallback = function(entity){
+		 console.log("myDrawCallback");
+		 console.log(entity);
+	 };
 
-		var myDrawCallback = function(entity){
-			console.log("myDrawCallback");
-			console.log(entity);
-		};
+	 $scope.initDrawTools = function(){
+		 $scope.drawHelperService.init(_viewer);
+	 };
+
+	 $scope.callDrawMarker = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 imgUrl: 'http://localhost:8080/bower_components/cesium-drawtools/img/dragIcon.png'
+		 };
+		 $scope.drawHelperService.drawMarker(options);
+	 };
+
+	 $scope.callDrawLine = function(){
 
 		 var options = {
 			 callback: myDrawCallback,
 			 editable: true,
 			 width: 5,
-	  		 geodesic: true
+	         geodesic: true
 		 };
+		 $scope.drawHelperService.drawPolyline(options);
+	};
 
-		 $scope.drawHelperService.drawLine(options);
+	$scope.callDrawPoly = function(){
 
+		var options = {
+			callback: myDrawCallback,
+			editable: true
+		};
+		$scope.drawHelperService.drawPolygon(options);
+	};
+
+	 $scope.callDrawExtent = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawExtent(options);
+	 };
+
+	 $scope.callDrawCircle = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawCircle(options);
 	 };
 
 	$scope.demoGraph = function(){

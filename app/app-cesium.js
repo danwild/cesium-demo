@@ -7,8 +7,6 @@ var _viewer = new Cesium.Viewer('cesiumContainer', {
 	animation: false
 });
 
-
-
 var homeCamera = {
 	"north": -8,
 	"east": 158,
@@ -17,7 +15,12 @@ var homeCamera = {
 }
 
 // set aus extent, and assign default for home button etc.
-var ausExtent = Cesium.Rectangle.fromDegrees(homeCamera.west, homeCamera.south, homeCamera.east, homeCamera.north);
+var ausExtent = Cesium.Rectangle.fromDegrees(
+	homeCamera.west,
+	homeCamera.south,
+	homeCamera.east,
+	homeCamera.north
+);
 
 _viewer.camera.viewRectangle(ausExtent);
 
