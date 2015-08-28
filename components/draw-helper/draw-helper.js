@@ -65,12 +65,10 @@ angular.module('cesium.drawhelper', [])
 	 * Wrapper for DrawHelper.startDrawingMarker
 	 *
 	 * @param options {
-	 *      callback: function,
-	 *      imgUrl: string
+	 *      callback: Function, // returns the created primitive
+	 *      imgUrl: String
 	 * }
 	 *
-	 * options.callback (returns the created entity) REQUIRED
-	 * options.imgUrl
 	 *
 	 */
 	service.drawMarker = function(options){
@@ -105,12 +103,12 @@ angular.module('cesium.drawhelper', [])
 	 *
 	 * Wrapper for DrawHelper.startDrawingPolyline
 	 *
-     * @param options Object
-	 *
-	 * options.callback (returns the created entity)
-	 * options.editable
-	 * options.width
-	 * options.geodesic
+     * @param options {
+	 *      callback: Function, // returns the created primitive
+	 *      editable: Boolean,
+	 *      width: Number,
+	 *      geodesic: Boolean
+	 * }
 	 *
 	 */
 	service.drawPolyline = function(options){
@@ -137,7 +135,7 @@ angular.module('cesium.drawhelper', [])
 					});
 				}
 
-				options.callback(polyline);
+				options.hasOwnProperty('callback') ? options.callback(polyline) : console.log(polyline);
 			}
 		});
 	};
@@ -146,10 +144,10 @@ angular.module('cesium.drawhelper', [])
 	 *
 	 * Wrapper for DrawHelper.startDrawingPolygon
 	 *
-	 * @param options Object
-	 *
-	 * options.callback (returns the created entity) REQUIRED
-	 * options.editable
+	 * @param options {
+	 *      callback: Function, // returns the created primitive
+	 *       editable: Boolean
+	 * }
 	 *
 	 */
 	service.drawPolygon = function(options){
@@ -178,7 +176,7 @@ angular.module('cesium.drawhelper', [])
 					});
 				}
 
-				options.callback(polygon);
+				options.hasOwnProperty('callback') ? options.callback(polygon) : console.log(polygon);
 			}
 		});
 	};
@@ -187,10 +185,10 @@ angular.module('cesium.drawhelper', [])
 	 *
 	 * Wrapper for DrawHelper.startDrawingPolygon
 	 *
-	 * @param options Object
-	 *
-	 * options.callback (returns the created entity) REQUIRED
-	 * options.editable
+	 * @param options {
+	 *      callback: Function, // returns the created primitive
+	 *      editable: Boolean
+	 * }
 	 *
 	 */
 	service.drawExtent = function(options){
@@ -218,7 +216,7 @@ angular.module('cesium.drawhelper', [])
 					});
 				};
 
-				options.callback(extentPrimitive);
+				options.hasOwnProperty('callback') ? options.callback(extentPrimitive) : console.log(extentPrimitive);
 			}
 		});
 	};
@@ -227,10 +225,10 @@ angular.module('cesium.drawhelper', [])
 	 *
 	 * Wrapper for DrawHelper.startDrawingCircle
 	 *
-	 * @param options Object
-	 *
-	 * options.callback (returns the created entity) REQUIRED
-	 * options.editable
+	 * @param options {
+	 *      callback: Function, // returns the created primitive
+	 *      editable: Boolean
+	 * }
 	 *
 	 */
 	service.drawCircle = function(options){
@@ -258,7 +256,7 @@ angular.module('cesium.drawhelper', [])
 					});
 				};
 
-				options.callback(circle);
+				options.hasOwnProperty('callback') ? options.callback(circle) : console.log(circle);
 			}
 		});
 	};
