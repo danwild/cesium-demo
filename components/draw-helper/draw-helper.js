@@ -9,11 +9,11 @@ angular.module('cesium.drawhelper', [])
 /**
  * A collection of helper functions for drawing shapes etc.
  *
- * > Point Marker
- * > PolyLine
- * > Polygon
- * > Extent (rectangle)
- * > Circle
+ * Point Marker
+ * PolyLine
+ * Polygon
+ * Extent
+ * Circle
  *
  */
 .factory('drawHelperService', [function() {
@@ -38,7 +38,7 @@ angular.module('cesium.drawhelper', [])
 	 *
      * @param cesiumWidget Object
 	 *
-	 * Should work with cesium viewer or widget
+	 * Should work with Cesium.Viewer or Cesium.Widget
 	 *
 	 */
 	service.init = function(cesiumWidget) {
@@ -64,7 +64,10 @@ angular.module('cesium.drawhelper', [])
 	 *
 	 * Wrapper for DrawHelper.startDrawingMarker
 	 *
-	 * @param options Object
+	 * @param options {
+	 *      callback: function,
+	 *      imgUrl: string
+	 * }
 	 *
 	 * options.callback (returns the created entity) REQUIRED
 	 * options.imgUrl
@@ -93,7 +96,7 @@ angular.module('cesium.drawhelper', [])
 				});
 				billboard.setEditable();
 
-				options.callback(billboard);
+				options.hasOwnProperty('callback') ? options.callback(billboard) : console.log(billboard);
 			}
 		});
 	};

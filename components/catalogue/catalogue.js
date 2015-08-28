@@ -39,7 +39,7 @@ angular.module('cossap.catalogue', [])
 
 		 var options = {
 			 callback: myDrawCallback,
-			 imgUrl: 'http://localhost:8080/bower_components/cesium-drawtools/img/dragIcon.png'
+			 imgUrl: 'bower_components/cesium-ng-drawhelper/img/dragIcon.png'
 		 };
 		 $scope.drawHelperService.drawMarker(options);
 	 };
