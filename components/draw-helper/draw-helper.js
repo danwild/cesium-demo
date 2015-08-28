@@ -34,13 +34,13 @@ angular.module('cesium.drawhelper', [])
 	var primitivesCollection = new Cesium.PrimitiveCollection();
 	var billboardCollection = new Cesium.BillboardCollection();
 
-	/**
-	 *
-     * @param cesiumWidget Object
-	 *
-	 * Should work with Cesium.Viewer or Cesium.Widget
-	 *
-	 */
+		/**
+		 *
+ 		 * @param cesiumWidget Object
+		 *
+		 * Should work with Cesium.Viewer or Cesium.Widget
+		 *
+		 */
 	service.init = function(cesiumWidget) {
 
 		service.active = true;
