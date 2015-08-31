@@ -34,9 +34,12 @@ Repo for experimenting with CesiumJS functionality, and learning some JS build/d
 </ul>
 
 
-<h2>Notes:</h2>
+<h2>Notes/Issues/Todo:</h2>
 
 <ul>
+	<li>Not sure how to disable the built in WMS GetFeatureInfo popup box without setting
+	 <code>WebMapServiceImageryProvider#enablePickFeatures</code> to <code>false</code>. 
+	 Currently just hiding with <code>.cesium-infoBox-visible { display: none; }</code></li>
 	<li>Had issues with gulp using bootstrap 3.3.5 (main file/s not set correctly for css for bower), have rolled back to 3.3.4.</li>
 	<li>Switched to <code>font-awesome-min</code> fork which just uses css as bowers <code>font-awesome</code> wants LESS/SCSS. Update to main pkg when I get with the program...</li>
 	<li>Did try combining all js assets into one file to be minified, but tended to cause conflicts so sticking with uglier but more reliable inject script tag method.</li>

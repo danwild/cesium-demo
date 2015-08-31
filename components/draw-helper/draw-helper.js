@@ -43,8 +43,6 @@ angular.module('cesium.drawhelper', [])
 		 */
 	service.init = function(cesiumWidget) {
 
-		service.active = true;
-
 		// create the scene with a master PrimitivesCollection to hold our shapes
 		service.scene = cesiumWidget.scene;
 		primitivesCollection.add(billboardCollection);
@@ -270,6 +268,15 @@ angular.module('cesium.drawhelper', [])
 		billboardCollection = new Cesium.BillboardCollection();
 		primitivesCollection.add(billboardCollection);
 		service.scene.primitives.add(primitivesCollection);
+	};
+
+	/**
+	 * @param cartographic
+	 * @param precision
+	 * @returns {string}
+	 */
+	service.getDisplayLatLngString = function(cartographic, precision) {
+		return Cesium.Math.toDegrees(cartographic.longitude).toFixed(2) + ", " + Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
 	};
 
 

@@ -4,7 +4,8 @@ angular.module('cossapDemo', [
     'cossap.charts',
     'cossap.charts.stream',
     'cossap.cesiumpanel',
-	'cesium.drawhelper'
+	'cesium.drawhelper',
+    'cesium.picker'
 
   ]
 );

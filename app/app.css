@@ -35,12 +35,6 @@ html, body {
 
 
 /*DrawHelper*/
-/*#toolbar {*/
-
-    /*position: absolute;*/
-    /*right: 10px;*/
-    /*top: 50px;*/
-/*}*/
 
 #logging {
     position: fixed;
@@ -51,4 +45,10 @@ html, body {
     padding: 10px;
     background: white;
 }
-/* /DrawHelper */
+
+
+/*Cesium*/
+
+.cesium-infoBox-visible {
+    display: none;
+}

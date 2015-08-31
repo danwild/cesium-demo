@@ -11,20 +11,27 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService',
- function($scope, streamChartService, drawHelperService) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService',
+ function($scope, streamChartService, drawHelperService, pickService) {
 
 
 	$scope.drawHelperService = drawHelperService;
 	
+
 	var layers = _viewer.scene.imageryLayers;
-	var canvas = _viewer.canvas;
-	var ellipsoid = _viewer.scene.globe.ellipsoid;
+	//var canvas = _viewer.canvas;
+
+
+	var handler;
 
 
 	var myWms;
 	var myTiles;
 	var myBoreholes;
+
+
+	 $scope.drawHelperService.init(_viewer);
+	 $scope.pickService = pickService;
 
 	 var myDrawCallback = function(entity){
 		 console.log("myDrawCallback");
@@ -32,7 +39,7 @@ angular.module('cossap.catalogue', [])
 	 };
 
 	 $scope.initDrawTools = function(){
-		 $scope.drawHelperService.init(_viewer);
+		 $scope.drawHelperService.active = true;
 	 };
 
 	 $scope.callDrawMarker = function(){
@@ -108,33 +115,50 @@ angular.module('cossap.catalogue', [])
 
 	};
 
-	$scope.addClickCanvas = function(){
+	 $scope.destroyCursorHandler = function(){
+		 if(handler){
+			 handler.destroy();
+			 handler = null;
+		 }
+	}
 
-		canvas.onclick = function() {
-		    console.log("CLICK");
-		};
-	};
+	$scope.addCursorHandler = function(){
 
-	$scope.clickHandlerLocation = function(){
+		var ellipsoid = _viewer.scene.globe.ellipsoid;
+		var entity = _viewer.entities.add({
+			label : {
+				show : false
+			}
+		});
 
-		var handler = new Cesium.ScreenSpaceEventHandler(canvas);
-		var mousePosition;
-
+		// Mouse over the globe to see the cartographic position
+		handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
 		handler.setInputAction(function(movement) {
-		    
+
 			console.log(movement);
 
-		    mousePosition = Cesium.Cartesian3.clone(movement.position);
+			var cartesian = _viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
+			if (cartesian) {
+				var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+				var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
+				var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
 
-		    var cartographicPosition = Cesium.Ellipsoid.WGS84.cartesianToCartographic(mousePosition);
-
-		    console.log("Cesium.Cartesian mousePosition "+mousePosition);
-		    console.log("Cesium.Cartographic mousePosition "+cartographicPosition);
-
-		}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+				entity.position = cartesian;
+				entity.label.show = true;
+				entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+			} else {
+				entity.label.show = false;
+			}
+		}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
 	};
-	
+
+	 $scope.addPickListener = function(){
+
+		 pickService.addPickListener();
+
+	 };
+
 	$scope.rest = function(){
 
 		console.log("ArcGis");
@@ -178,10 +202,14 @@ angular.module('cossap.catalogue', [])
 	        parameters : {
                 transparent : 'true',
                 format : 'image/png'
-            }
+            },
+			enablePickFeatures: true // enables built-in GetFeatureInfo()
 		}));
 
 		myWms.alpha = 0.6;
+
+		console.log(_viewer.scene.imageryLayers);
+
 	};
 
 	$scope.boreholes = function(){

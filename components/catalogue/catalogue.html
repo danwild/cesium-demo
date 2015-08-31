@@ -11,20 +11,18 @@
     </p>
 
     <p>
-        Comes with free GetFeatureInfo inspector..
-        <button ng-click="wms()" class="btn btn-default">WMS with Alpha</button>
+        Comes with free obtrusive GetFeatureInfo inspector..<br/>
+        <button ng-click="wms()" class="btn btn-default">WMS (pickEnabled)</button>
     </p>
 
     <p>
-        <button ng-click="boreholes()" class="btn btn-default">Boreholes WMS</button>
+        <button ng-click="pickService.addPickListener()" class="btn btn-default">Add Feature Pick listener</button>
+        <button ng-click="pickService.destroyPickListener()" class="btn btn-default">Destroy Pick listener</button>
     </p>
 
     <p>
-        <button ng-click="addClickCanvas()" class="btn btn-default">Add Map Click Handler direct to Canvas</button>
-    </p>
-
-    <p>
-        <button ng-click="clickHandlerLocation()" class="btn btn-default">Add ScreenSpaceEventHandler <br/>(get click location)</button>
+        <button ng-click="addCursorHandler()" class="btn btn-default">Get Cursor Position<br/>(ScreenSpaceEventHandler)</button>
+        <button ng-click="destroyCursorHandler()" class="btn btn-default">Destroy handler</button>
     </p>
 
     <p>
@@ -51,7 +49,6 @@
 
     <h3>Notes:</h3>
 
-    Looks like we will need to do a bit of leg work with some basic functions we might take for granted...<br/>
-    e.g. no provided function for WMSGetFeatureInfo() beyond the one provided by WebMapServiceImageryProvider, NICTA had to take another approach: <a href="https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ">https://groups.google.com/forum/#!topic/cesium-dev/fiMjCnatwXQ</a>
+    ...
 
 </div>

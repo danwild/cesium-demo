@@ -11,20 +11,27 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService',
- function($scope, streamChartService, drawHelperService) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService',
+ function($scope, streamChartService, drawHelperService, pickService) {
 
 
 	$scope.drawHelperService = drawHelperService;
 	
+
 	var layers = _viewer.scene.imageryLayers;
-	var canvas = _viewer.canvas;
-	var ellipsoid = _viewer.scene.globe.ellipsoid;
+	//var canvas = _viewer.canvas;
+
+
+	var handler;
 
 
 	var myWms;
 	var myTiles;
 	var myBoreholes;
+
+
+	 $scope.drawHelperService.init(_viewer);
+	 $scope.pickService = pickService;
 
 	 var myDrawCallback = function(entity){
 		 console.log("myDrawCallback");
@@ -32,7 +39,7 @@ angular.module('cossap.catalogue', [])
 	 };
 
 	 $scope.initDrawTools = function(){
-		 $scope.drawHelperService.init(_viewer);
+		 $scope.drawHelperService.active = true;
 	 };
 
 	 $scope.callDrawMarker = function(){
@@ -108,33 +115,50 @@ angular.module('cossap.catalogue', [])
 
 	};
 
-	$scope.addClickCanvas = function(){
+	 $scope.destroyCursorHandler = function(){
+		 if(handler){
+			 handler.destroy();
+			 handler = null;
+		 }
+	}
 
-		canvas.onclick = function() {
-		    console.log("CLICK");
-		};
-	};
+	$scope.addCursorHandler = function(){
 
-	$scope.clickHandlerLocation = function(){
+		var ellipsoid = _viewer.scene.globe.ellipsoid;
+		var entity = _viewer.entities.add({
+			label : {
+				show : false
+			}
+		});
 
-		var handler = new Cesium.ScreenSpaceEventHandler(canvas);
-		var mousePosition;
-
+		// Mouse over the globe to see the cartographic position
+		handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
 		handler.setInputAction(function(movement) {
-		    
+
 			console.log(movement);
 
-		    mousePosition = Cesium.Cartesian3.clone(movement.position);
+			var cartesian = _viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
+			if (cartesian) {
+				var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+				var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
+				var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
 
-		    var cartographicPosition = Cesium.Ellipsoid.WGS84.cartesianToCartographic(mousePosition);
-
-		    console.log("Cesium.Cartesian mousePosition "+mousePosition);
-		    console.log("Cesium.Cartographic mousePosition "+cartographicPosition);
-
-		}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+				entity.position = cartesian;
+				entity.label.show = true;
+				entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+			} else {
+				entity.label.show = false;
+			}
+		}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
 	};
-	
+
+	 $scope.addPickListener = function(){
+
+		 pickService.addPickListener();
+
+	 };
+
 	$scope.rest = function(){
 
 		console.log("ArcGis");
@@ -178,10 +202,14 @@ angular.module('cossap.catalogue', [])
 	        parameters : {
                 transparent : 'true',
                 format : 'image/png'
-            }
+            },
+			enablePickFeatures: true // enables built-in GetFeatureInfo()
 		}));
 
 		myWms.alpha = 0.6;
+
+		console.log(_viewer.scene.imageryLayers);
+
 	};
 
 	$scope.boreholes = function(){
@@ -534,16 +562,14 @@ angular.module('cesium.drawhelper', [])
 	var primitivesCollection = new Cesium.PrimitiveCollection();
 	var billboardCollection = new Cesium.BillboardCollection();
 
-	/**
-	 *
-     * @param cesiumWidget Object
-	 *
-	 * Should work with Cesium.Viewer or Cesium.Widget
-	 *
-	 */
+		/**
+		 *
+ 		 * @param cesiumWidget Object
+		 *
+		 * Should work with Cesium.Viewer or Cesium.Widget
+		 *
+		 */
 	service.init = function(cesiumWidget) {
-
-		service.active = true;
 
 		// create the scene with a master PrimitivesCollection to hold our shapes
 		service.scene = cesiumWidget.scene;
@@ -772,7 +798,112 @@ angular.module('cesium.drawhelper', [])
 		service.scene.primitives.add(primitivesCollection);
 	};
 
+	/**
+	 * @param cartographic
+	 * @param precision
+	 * @returns {string}
+	 */
+	service.getDisplayLatLngString = function(cartographic, precision) {
+		return Cesium.Math.toDegrees(cartographic.longitude).toFixed(2) + ", " + Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
+	};
+
 
 	return service;
 
 }])
+/**
+ * Created by danielwild on 31/08/2015.
+ */
+
+'use strict';
+
+/**
+ *
+ * Helper functions for feature picking... and service requests..?
+ *
+ */
+angular.module('cesium.picker', [])
+
+
+
+.factory('pickService', ['$q', function($q) {
+
+        var service = {};
+        var handler;
+
+        service.destroyPickListener = function(){
+            handler.destroy();
+        };
+
+        service.addPickListener = function(){
+
+            var ellipsoid = _viewer.scene.globe.ellipsoid;
+            var entity = _viewer.entities.add({
+                label : {
+                    show : false
+                }
+            });
+
+            // Mouse over the globe to see the cartographic position
+            handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
+            handler.setInputAction(function(pos) {
+
+                var cartesian = _viewer.camera.pickEllipsoid(pos.position, ellipsoid);
+
+                if (cartesian) {
+                    var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+                    var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
+                    var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
+
+                    entity.position = cartesian;
+                    entity.label.show = true;
+                    entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+
+                    service.pickImageryFeatures(pos.position); // Cartesian2
+
+                } else {
+                    entity.label.show = false;
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        };
+
+        /**
+         *
+         * An improvised GetFeatureInfo(), determines the imagery layer features that are intersected by a pick ray.
+         *
+         *
+         * TerriaJs uses a similar approach (we haven't added vector support etc. yet)
+         * .../terriajs-1.0.36/lib/Models/Cesium.js (~ line 443)
+         *
+         *
+         * @param cartesian Cartesian2
+         */
+        service.pickImageryFeatures = function(cartesian){
+
+            var deferred = $q.defer();
+            var pickRay = _viewer.scene.camera.getPickRay(cartesian);
+
+            // Pick raster features
+            var promise = _viewer.scene.imageryLayers.pickImageryLayerFeatures(pickRay, _viewer.scene);
+
+            if (!Cesium.defined(promise)) {
+                console.log('No features picked.');
+            }
+
+            else {
+
+                Cesium.when(promise, function (features) {
+                    console.log(features);
+                    deferred.resolve(features);
+                });
+            }
+
+            return deferred.promise;
+        };
+
+
+
+    return service;
+}])
+
