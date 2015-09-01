@@ -26,6 +26,7 @@ angular.module('cossap.catalogue', [])
 
 
 	var myWms;
+    var myProxyLayer;
 	var myTiles;
 	var myBoreholes;
 
@@ -211,6 +212,43 @@ angular.module('cossap.catalogue', [])
 		console.log(_viewer.scene.imageryLayers);
 
 	};
+
+	$scope.wmsProxy = function(){
+
+		console.log("text proxy");
+
+		if(myProxyLayer){
+			layers.remove(myProxyLayer);
+			console.log("removing layer..");
+			myProxyLayer = null;
+			return;
+		}
+
+		var url = "http://localhost:9090/geoserver/cossap/wms?service=WMS";
+		var layer = "cossap:Acreage_AcreageReleaseAreas_2014";
+
+		myProxyLayer = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
+			url : url,
+			layers: layer,
+			rectangle: ausExtent, // only load imagery for australia
+			parameters : {
+				transparent : 'true',
+				format : 'image/png',
+				//proxy: new Cesium.DefaultProxy('/proxy/')
+				proxy : {
+					getURL : function(url) {
+						return '/proxy/url?url=' + encodeURIComponent(url);
+					}
+				}
+			},
+			enablePickFeatures: true // enables built-in GetFeatureInfo()
+		}));
+
+		myProxyLayer.alpha = 0.6;
+
+		console.log(_viewer.scene.imageryLayers);
+
+	}
 
 	$scope.boreholes = function(){
 
