@@ -11,8 +11,8 @@ angular.module('cossap.catalogue', [])
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService',
- function($scope, streamChartService, drawHelperService, pickService) {
+.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService', 'miniMapService',
+ function($scope, streamChartService, drawHelperService, pickService, miniMapService) {
 
 
 	$scope.drawHelperService = drawHelperService;
@@ -237,6 +237,7 @@ angular.module('cossap.catalogue', [])
 				//proxy: new Cesium.DefaultProxy('/proxy/')
 				proxy : {
 					getURL : function(url) {
+						// can tack on additional params, tokens etc this way if we need to..
 						return '/proxy/url?url=' + encodeURIComponent(url);
 					}
 				}
@@ -286,6 +287,13 @@ angular.module('cossap.catalogue', [])
 
 		myBoreholes.alpha = 1;
 	};
+
+	 $scope.demoMiniMap = function(){
+
+		 miniMapService.init(_viewer);
+
+	 };
+
 
 
 }]);

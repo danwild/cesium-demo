@@ -5,6 +5,7 @@ angular.module('cossapDemo', [
     'cossap.charts.stream',
     'cossap.cesiumpanel',
 	'cesium.drawhelper',
+	'cesium.minimap',
     'cesium.picker'
 
   ]
