@@ -101,7 +101,8 @@ angular.module('cesium.minimap', [])
 			scene.screenSpaceCameraController.enableTilt = false;
 			scene.screenSpaceCameraController.enableLook = false;
 
-			service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
+			// inherit parent map..? nah
+			//service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
 
 			service.miniViewer = viewer;
 		}
