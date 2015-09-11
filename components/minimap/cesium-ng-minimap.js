@@ -92,52 +92,22 @@ angular.module('cesium.minimap', [])
 		}
 
 
-		// this is the guts...
-		//function updateMapPosition(){
-		//
-		//	console.log("ping");
-		//
-		//	var childCamera = service.miniViewer.scene.camera;
-		//
-		//	var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-		//		service.parentCamera.position.clone()
-		//	);
-		//
-		//
-		//	childCamera.setView({
-		//		positionCartographic: pos,
-		//		heading: service.parentCamera.heading
-		//	});
-		//};
-
-
 		// loop fast when camera is being moved
 		function mapMoving(){
 
 			service.intervalHandle = setInterval(function() {
 
-				//var camera = _viewer.scene.camera;
-				//var store = {  position: camera.position.clone(),
-				//		direction: camera.direction.clone(),
-				//		up: camera.up.clone(),
-				//		right: camera.right.clone(),
-				//		transform: camera.transform.clone(),
-				//		frustum: camera.frustum.clone()
-				//	};
+				getExtentView();
 
-				//update UI elements
-
-				var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-					service.parentCamera.position.clone()
-				);
-
-				service.miniViewer.scene.camera.setView({
-					positionCartographic: pos,
-					heading: service.parentCamera.heading
-				});
-
-				//console.log("updated");
-
+				// using the parent position directly fails with pitch and yaw
+				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+				//	service.parentCamera.position.clone()
+				//);
+				//
+				//service.miniViewer.scene.camera.setView({
+				//	positionCartographic: pos,
+				//	heading: service.parentCamera.heading
+				//});
 
 			}, 10);
 
@@ -149,7 +119,111 @@ angular.module('cesium.minimap', [])
 			console.log("stopped");
 		};
 
+		// get 2d rectangle from current view
+		function getExtentView(){
+
+			var ellipsoid = Cesium.Ellipsoid.WGS84;
+
+
+			var c2 = new Cesium.Cartesian2(0,0);
+			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+			c2 = new Cesium.Cartesian2(service.parentViewer.scene.canvas.width, service.parentViewer.scene.canvas.height);
+			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+
+			if(leftTop != null && rightDown != null){
+
+				leftTop = ellipsoid.cartesianToCartographic(leftTop);
+				rightDown = ellipsoid.cartesianToCartographic(rightDown);
+
+				// west, south, east, north
+				var extent = new Cesium.Rectangle.fromDegrees(
+
+					Cesium.Math.toDegrees(leftTop.longitude),
+					Cesium.Math.toDegrees(rightDown.latitude),
+					Cesium.Math.toDegrees(rightDown.longitude),
+					Cesium.Math.toDegrees(leftTop.latitude)
+
+				);
+
+				//console.log(extent);
+				service.miniViewer.scene.camera.viewRectangle(extent);
+
+
+
+				console.log("view changed");
+
+				// entity...
+				//var cartesianPositions = ellipsoid.cartographicArrayToCartesianArray(
+				//	Cesium.Math.toDegrees(leftTop.longitude),
+				//	Cesium.Math.toDegrees(rightDown.latitude),
+				//	Cesium.Math.toDegrees(rightDown.longitude),
+				//	Cesium.Math.toDegrees(leftTop.latitude)
+				//);
+				//var entity = service.parentViewer.entities.add({
+				//	polygon : {
+				//		hierarchy : cartesianPositions,
+				//		outline : true,
+				//		outlineColor : Cesium.Color.RED,
+				//		outlineWidth : 9,
+				//		perPositionHeight: true,
+				//		material : Cesium.Color.BLUE.withAlpha(0.0),
+				//	}
+				//});
+
+
+
+				return extent;
+			}
+
+			else{//The sky is visible in 3D
+
+				console.log("the sky is falling :(");
+
+				return null;
+			}
+		}
+
+		function preRender(scene) {
+
+			var time = Cesium.getTimestamp();
+			var position = service.parentCamera.position;
+
+			if (!Cesium.Cartesian3.equalsEpsilon(service.lastPosition, position, Cesium.Math.EPSILON4)) {
+
+				console.log("view changed");
+
+				getExtentView();
+
+				service.lastTime = time;
+				//
+				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+				//	service.parentCamera.position.clone()
+				//);
+				//
+				//service.miniViewer.scene.camera.setView({
+				//	positionCartographic: pos,
+				//	heading: service.parentCamera.heading
+				//});
+			}
+
+			else if (time - service.lastTime > 250) {
+
+				//hide the 'view changed' message after 250 ms of inactivity
+				service.lastTime = time;
+				console.log("stopped");
+			}
+			service.lastPosition = position.clone();
+		}
+
 		function setupListeners() {
+
+			//service.lastTime = Cesium.getTimestamp();
+			//service.lastPosition = service.parentCamera.position.clone();
+			//
+			//service.parentViewer.scene.preRender.addEventListener(preRender);
+
 			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
 			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
 		}
@@ -158,8 +232,8 @@ angular.module('cesium.minimap', [])
 			service.expanded = !service.expanded;
 
 			if (service.expanded) {
-				service.container.style.width = '200px';
-				service.container.style.height = '200px';
+				service.container.style.width = '350px';
+				service.container.style.height = '350px';
 				service.toggleButton.className = service.toggleButton.className.replace(
 					' minimized',
 					''
@@ -203,9 +277,25 @@ angular.module('cesium.minimap', [])
 			service.container.appendChild(service.toggleButton);
 			setupMap(div);
 			setupListeners();
-			if (service.parentViewer.imageryLayers.length) {
-				addLayer(service.parentViewer.imageryLayers.get(0));
-			}
+
+			var url = "http://www.ga.gov.au/gis/rest/services/topography/Australian_Topography_WM/MapServer";
+			var layer = "0";
+
+
+
+			var topoLayer = new Cesium.ArcGisMapServerImageryProvider({
+				url : url,
+				layers: layer,
+				rectangle: ausExtent, // only load imagery for australia
+			});
+
+			addLayer(topoLayer);
+
+
+			// inherit parent baselayer..?
+			//if (service.parentViewer.imageryLayers.length) {
+			//	addLayer(service.parentViewer.imageryLayers.get(0));
+			//}
 		}
 
 
