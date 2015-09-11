@@ -7,17 +7,16 @@
 angular.module('cesium.minimap', [])
 
 /**
- * An ng service wrapper to add a 2d mini map to your cesium viewer
+ *
+ * TODO: ng refactor
+ *
+ * An ng service wrapper to add 2d mini map to your cesium viewer
  *
  */
 .factory('miniMapService', [function() {
 
 
 		var service = {};
-
-
-		//options = options || {};
-		//var expanded = options.expanded || true;
 
 		service.parentViewer;
 		service.parentCamera;
@@ -26,6 +25,7 @@ angular.module('cesium.minimap', [])
 		service.miniViewer;
 		service.container;
 		service.toggleButton;
+		service.logging;
 
 		service.options = {
 			animation: false,
@@ -44,20 +44,35 @@ angular.module('cesium.minimap', [])
 			mapProjection: new Cesium.WebMercatorProjection()
 		};
 
-
-		service.init = function(parentViewer){
-
+		/**
+		 *
+		 * @param parentViewer the 3d parent globe viewer
+		 * @param imageryProvider the imageryProvider to be used on the minimap
+		 *
+		 */
+		service.init = function(parentViewer, imageryProvider){
 
 			service.parentViewer = parentViewer;
 			service.parentCamera = service.parentViewer.scene.camera;
 
-			console.log("and we're off..");
+			// create container div -> directive...?
+			var div = document.createElement('div');
+			div.className = 'minimap-container';
+			service.logging = document.createElement('div');
+			service.logging.innerHTML = "Using National Scale"
+			service.logging.className = 'minimap-logging';
+			div.appendChild(service.logging);
 
-			// kick it off..
-			init();
+			service.container = getContainer();
+			service.container.appendChild(div);
+			service.toggleButton = createToggleButton();
+			service.container.appendChild(service.toggleButton);
+			setupMap(div);
+			setupListeners();
 
+			service.miniViewer.scene.imageryLayers.addImageryProvider(imageryProvider);
+			service.miniViewer.camera.viewRectangle(ausExtent);
 		};
-
 
 
 		// gets the miniMap container div
@@ -91,24 +106,11 @@ angular.module('cesium.minimap', [])
 			service.miniViewer = viewer;
 		}
 
-
-		// loop fast when camera is being moved
+		// use move start/stop so we're only looping when it matters
 		function mapMoving(){
 
 			service.intervalHandle = setInterval(function() {
-
 				getExtentView();
-
-				// using the parent position directly fails with pitch and yaw
-				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-				//	service.parentCamera.position.clone()
-				//);
-				//
-				//service.miniViewer.scene.camera.setView({
-				//	positionCartographic: pos,
-				//	heading: service.parentCamera.heading
-				//});
-
 			}, 10);
 
 		};
@@ -124,13 +126,11 @@ angular.module('cesium.minimap', [])
 
 			var ellipsoid = Cesium.Ellipsoid.WGS84;
 
-
 			var c2 = new Cesium.Cartesian2(0,0);
 			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
 
 			c2 = new Cesium.Cartesian2(service.parentViewer.scene.canvas.width, service.parentViewer.scene.canvas.height);
 			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-
 
 			if(leftTop != null && rightDown != null){
 
@@ -139,91 +139,34 @@ angular.module('cesium.minimap', [])
 
 				// west, south, east, north
 				var extent = new Cesium.Rectangle.fromDegrees(
-
 					Cesium.Math.toDegrees(leftTop.longitude),
 					Cesium.Math.toDegrees(rightDown.latitude),
 					Cesium.Math.toDegrees(rightDown.longitude),
 					Cesium.Math.toDegrees(leftTop.latitude)
-
 				);
 
-				//console.log(extent);
 				service.miniViewer.scene.camera.viewRectangle(extent);
+				console.log(extent);
 
-
-
-				console.log("view changed");
-
-				// entity...
-				//var cartesianPositions = ellipsoid.cartographicArrayToCartesianArray(
-				//	Cesium.Math.toDegrees(leftTop.longitude),
-				//	Cesium.Math.toDegrees(rightDown.latitude),
-				//	Cesium.Math.toDegrees(rightDown.longitude),
-				//	Cesium.Math.toDegrees(leftTop.latitude)
-				//);
-				//var entity = service.parentViewer.entities.add({
-				//	polygon : {
-				//		hierarchy : cartesianPositions,
-				//		outline : true,
-				//		outlineColor : Cesium.Color.RED,
-				//		outlineWidth : 9,
-				//		perPositionHeight: true,
-				//		material : Cesium.Color.BLUE.withAlpha(0.0),
-				//	}
-				//});
-
-
+				service.logging.style.display = "none";
 
 				return extent;
 			}
 
-			else{//The sky is visible in 3D
+			// The sky is visible in 3D, fallback to ausExtent national map
+			else {
 
-				console.log("the sky is falling :(");
+				console.log("the sky is falling :`(");
+
+				service.miniViewer.camera.viewRectangle(ausExtent);
+				service.logging.style.display = "block";
 
 				return null;
 			}
 		}
 
-		function preRender(scene) {
-
-			var time = Cesium.getTimestamp();
-			var position = service.parentCamera.position;
-
-			if (!Cesium.Cartesian3.equalsEpsilon(service.lastPosition, position, Cesium.Math.EPSILON4)) {
-
-				console.log("view changed");
-
-				getExtentView();
-
-				service.lastTime = time;
-				//
-				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-				//	service.parentCamera.position.clone()
-				//);
-				//
-				//service.miniViewer.scene.camera.setView({
-				//	positionCartographic: pos,
-				//	heading: service.parentCamera.heading
-				//});
-			}
-
-			else if (time - service.lastTime > 250) {
-
-				//hide the 'view changed' message after 250 ms of inactivity
-				service.lastTime = time;
-				console.log("stopped");
-			}
-			service.lastPosition = position.clone();
-		}
 
 		function setupListeners() {
-
-			//service.lastTime = Cesium.getTimestamp();
-			//service.lastPosition = service.parentCamera.position.clone();
-			//
-			//service.parentViewer.scene.preRender.addEventListener(preRender);
-
 			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
 			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
 		}
@@ -232,8 +175,8 @@ angular.module('cesium.minimap', [])
 			service.expanded = !service.expanded;
 
 			if (service.expanded) {
-				service.container.style.width = '350px';
-				service.container.style.height = '350px';
+				service.container.style.width = '200px';
+				service.container.style.height = '200px';
 				service.toggleButton.className = service.toggleButton.className.replace(
 					' minimized',
 					''
@@ -264,46 +207,5 @@ angular.module('cesium.minimap', [])
 			return btn;
 		}
 
-
-		function init() {
-
-			// create container div -> directive...?
-			var div = document.createElement('div');
-			div.className = 'minimap-container';
-
-			service.container = getContainer();
-			service.container.appendChild(div);
-			service.toggleButton = createToggleButton();
-			service.container.appendChild(service.toggleButton);
-			setupMap(div);
-			setupListeners();
-
-			var url = "http://www.ga.gov.au/gis/rest/services/topography/Australian_Topography_WM/MapServer";
-			var layer = "0";
-
-
-
-			var topoLayer = new Cesium.ArcGisMapServerImageryProvider({
-				url : url,
-				layers: layer,
-				rectangle: ausExtent, // only load imagery for australia
-			});
-
-			addLayer(topoLayer);
-
-
-			// inherit parent baselayer..?
-			//if (service.parentViewer.imageryLayers.length) {
-			//	addLayer(service.parentViewer.imageryLayers.get(0));
-			//}
-		}
-
-
-
-
-
-
-
 		return service;
-
-}])
+}]);

@@ -290,7 +290,15 @@ angular.module('cossap.catalogue', [])
 
 	 $scope.demoMiniMap = function(){
 
-		 miniMapService.init(_viewer);
+		 var url = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer";
+		 var layer = "0";
+		 var imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
+			 url : url,
+			 layers: layer,
+			 rectangle: ausExtent
+		 });
+
+		 miniMapService.init(_viewer, imageryProvider);
 
 	 };
 
@@ -312,6 +320,263 @@ angular.module('cossap.cesiumpanel', [])
 	function($scope, cossapChartState) {
 
 		$scope.cossapChartState = cossapChartState;
+
+}]);
+
+'use strict';
+
+angular.module('cossap.charts.stream', [])
+
+
+.directive('chartStream', [function() {
+	return {
+		templateUrl : 'components/charts/chart-stream.html',
+		controller : 'streamChartController'
+	};
+}])
+
+.controller('streamChartController', ['$scope', 'cossapChartState', function($scope, cossapChartState) {
+
+	$scope.cossapChartState = cossapChartState;
+
+}])
+
+
+
+.factory('streamChartService', ['$rootScope', 'cossapChartState', function($rootScope, cossapChartState) {
+
+	var service = {};
+
+	service.initChart = function(){
+
+		console.log("initChart..");
+
+
+
+		if(cossapChartState.chartPanel){
+			cossapChartState.chartPanel = false;
+			$("#streamChartD3").html("");
+			return;
+		}
+
+        cossapChartState.chartPanel = true;
+
+        /*---------------------------------------- D3 -----------------------------------------*/
+
+  		// #8dd3c7
+		// #ffffb3
+		// #bebada
+		// #fb8072
+		// #80b1d3
+		// #fdb462
+		// #b3de69
+		// #fccde5
+		// #d9d9d9
+
+        var margin = {top: 0, right: 100, bottom: 30, left: 100},
+          width  = 1000,
+          height = 320  - margin.top  - margin.bottom;
+
+	      var x = d3.scale.ordinal()
+	          .rangeRoundBands([0, width], .1);
+
+	      var y = d3.scale.linear()
+	          .rangeRound([height, 0]);
+
+	      var xAxis = d3.svg.axis()
+	          .scale(x)
+	          .orient("bottom");
+
+	      var yAxis = d3.svg.axis()
+	          .scale(y)
+	          .orient("left");
+
+	      var stack = d3.layout.stack()
+	          .offset("wiggle")
+	          .values(function (d) { return d.values; })
+	          .x(function (d) { return x(d.label) + x.rangeBand() / 2; })
+	          .y(function (d) { return d.value; });
+
+	      var area = d3.svg.area()
+	          .interpolate("cardinal")
+	          .x(function (d) { return x(d.label) + x.rangeBand() / 2; })
+	          .y0(function (d) { return y(d.y0); })
+	          .y1(function (d) { return y(d.y0 + d.y); });
+
+	      var color = d3.scale.ordinal()
+	          .range([
+	          	'#8dd3c7',
+				'#ffffb3',
+				'#bebada',
+				'#fb8072',
+				'#80b1d3'
+			]);
+
+	      var svg = d3.select("#streamChartD3").append("svg")
+	          .attr("width",  width  + margin.left + margin.right)
+	          .attr("height", height + margin.top  + margin.bottom)
+	        .append("g")
+	          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	      d3.csv("components/charts/demo.csv", function (error, data) {
+
+	      	console.log(data);
+
+	        var labelVar = 'quarter';
+	        var varNames = d3.keys(data[0])
+	            .filter(function (key) { return key !== labelVar;});
+	        color.domain(varNames);
+
+	        var seriesArr = [], series = {};
+	        varNames.forEach(function (name) {
+	          series[name] = {name: name, values:[]};
+	          seriesArr.push(series[name]);
+	        });
+
+	        data.forEach(function (d) {
+	          varNames.map(function (name) {
+	            series[name].values.push({name: name, label: d[labelVar], value: +d[name]});
+	          });
+	        });
+
+	        x.domain(data.map(function (d) { return d.quarter; }));
+
+	        stack(seriesArr);
+
+	        y.domain([0, d3.max(seriesArr, function (c) { 
+	            return d3.max(c.values, function (d) { return d.y0 + d.y; });
+	          })]);
+
+	        svg.append("g")
+	            .attr("class", "x axis")
+	            .attr("transform", "translate(0," + height + ")")
+	            .call(xAxis);
+
+	        svg.append("g")
+	            .attr("class", "y axis")
+	            .call(yAxis)
+	          .append("text")
+	            .attr("transform", "rotate(-90)")
+	            .attr("y", 6)
+	            .attr("dy", ".71em")
+	            .style("text-anchor", "end")
+	            .style("fill", "#FFF")
+	            .text("Number of Rounds");
+
+	        var selection = svg.selectAll(".series")
+	          .data(seriesArr)
+	          .enter().append("g")
+	            .attr("class", "series");
+
+	        selection.append("path")
+	          .attr("class", "streamPath")
+	          .attr("d", function (d) { return area(d.values); })
+	          .style("fill", function (d) { return color(d.name); })
+	          .style("stroke", "grey");
+
+	        var points = svg.selectAll(".seriesPoints")
+	          .data(seriesArr)
+	          .enter().append("g")
+	            .attr("class", "seriesPoints");
+
+	        points.selectAll(".point")
+	          .data(function (d) { return d.values; })
+	          .enter().append("circle")
+	           .attr("class", "point")
+	           .attr("cx", function (d) { return x(d.label) + x.rangeBand() / 2; })
+	           .attr("cy", function (d) { return y(d.y0 + d.y); })
+	           .attr("r", "10px")
+	           .style("fill",function (d) { return color(d.name); })
+	           .on("mouseover", function (d) { showPopover.call(this, d); })
+	           .on("mouseout",  function (d) { removePopovers(); })
+
+	        var legend = svg.selectAll(".legend")
+	            .data(varNames.slice().reverse())
+	          .enter().append("g")
+	            .attr("class", "legend")
+	            .attr("transform", function (d, i) { return "translate(55," + i * 20 + ")"; });
+
+	        legend.append("rect")
+	            .attr("x", width - 10)
+	            .attr("width", 10)
+	            .attr("height", 10)
+	            .style("fill", color)
+	            .style("stroke", "grey");
+
+	        legend.append("text")
+	            .attr("x", width - 12)
+	            .attr("y", 6)
+	            .attr("dy", ".35em")
+	            .style("text-anchor", "end")
+	            .style("fill", "#FFF")
+	            .text(function (d) { return d; });
+
+	        function removePopovers () {
+	          $('.popover').each(function() {
+	            $(this).remove();
+	          }); 
+	        }
+
+	        function showPopover (d) {
+	          $(this).popover({
+	            title: d.name,
+	            placement: 'auto top',
+	            container: 'body',
+	            trigger: 'manual',
+	            html : true,
+	            content: function() { 
+	              return "Quarter: " + d.label + 
+	                     "<br/>Rounds: " + d3.format(",")(d.value ? d.value: d.y1 - d.y0); }
+	          });
+	          $(this).popover('show')
+	        }
+
+	      });
+
+
+        /*---------------------------------------- /D3 -----------------------------------------*/
+
+        
+        // safe apply
+        if(!$rootScope.$$phase) {
+        	$rootScope.$apply();
+        };
+	};
+
+
+	
+	return service;
+
+}]);
+'use strict';
+
+angular.module('cossap.charts', [])
+
+
+.directive('cossapChartPanel', [function() {
+	return {
+		templateUrl : 'components/charts/charts.html',
+		controller : 'cossapChartController'
+	};e
+}])
+
+
+.controller('cossapChartController', ['$scope', 'cossapChartState', 
+	function($scope, cossapChartState) {
+
+	
+	$scope.cossapChartState = cossapChartState;
+
+}])
+
+.factory('cossapChartState', [function() {
+
+	var state = {};
+
+	state.chartPanel = false;
+	state.streamChart = false;
+
+	return state;
 
 }]);
 
@@ -600,572 +865,6 @@ angular.module('cesium.drawhelper', [])
 	return service;
 
 }])
-'use strict';
-
-angular.module('cossap.charts.stream', [])
-
-
-.directive('chartStream', [function() {
-	return {
-		templateUrl : 'components/charts/chart-stream.html',
-		controller : 'streamChartController'
-	};
-}])
-
-.controller('streamChartController', ['$scope', 'cossapChartState', function($scope, cossapChartState) {
-
-	$scope.cossapChartState = cossapChartState;
-
-}])
-
-
-
-.factory('streamChartService', ['$rootScope', 'cossapChartState', function($rootScope, cossapChartState) {
-
-	var service = {};
-
-	service.initChart = function(){
-
-		console.log("initChart..");
-
-
-
-		if(cossapChartState.chartPanel){
-			cossapChartState.chartPanel = false;
-			$("#streamChartD3").html("");
-			return;
-		}
-
-        cossapChartState.chartPanel = true;
-
-        /*---------------------------------------- D3 -----------------------------------------*/
-
-  		// #8dd3c7
-		// #ffffb3
-		// #bebada
-		// #fb8072
-		// #80b1d3
-		// #fdb462
-		// #b3de69
-		// #fccde5
-		// #d9d9d9
-
-        var margin = {top: 0, right: 100, bottom: 30, left: 100},
-          width  = 1000,
-          height = 320  - margin.top  - margin.bottom;
-
-	      var x = d3.scale.ordinal()
-	          .rangeRoundBands([0, width], .1);
-
-	      var y = d3.scale.linear()
-	          .rangeRound([height, 0]);
-
-	      var xAxis = d3.svg.axis()
-	          .scale(x)
-	          .orient("bottom");
-
-	      var yAxis = d3.svg.axis()
-	          .scale(y)
-	          .orient("left");
-
-	      var stack = d3.layout.stack()
-	          .offset("wiggle")
-	          .values(function (d) { return d.values; })
-	          .x(function (d) { return x(d.label) + x.rangeBand() / 2; })
-	          .y(function (d) { return d.value; });
-
-	      var area = d3.svg.area()
-	          .interpolate("cardinal")
-	          .x(function (d) { return x(d.label) + x.rangeBand() / 2; })
-	          .y0(function (d) { return y(d.y0); })
-	          .y1(function (d) { return y(d.y0 + d.y); });
-
-	      var color = d3.scale.ordinal()
-	          .range([
-	          	'#8dd3c7',
-				'#ffffb3',
-				'#bebada',
-				'#fb8072',
-				'#80b1d3'
-			]);
-
-	      var svg = d3.select("#streamChartD3").append("svg")
-	          .attr("width",  width  + margin.left + margin.right)
-	          .attr("height", height + margin.top  + margin.bottom)
-	        .append("g")
-	          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-	      d3.csv("components/charts/demo.csv", function (error, data) {
-
-	      	console.log(data);
-
-	        var labelVar = 'quarter';
-	        var varNames = d3.keys(data[0])
-	            .filter(function (key) { return key !== labelVar;});
-	        color.domain(varNames);
-
-	        var seriesArr = [], series = {};
-	        varNames.forEach(function (name) {
-	          series[name] = {name: name, values:[]};
-	          seriesArr.push(series[name]);
-	        });
-
-	        data.forEach(function (d) {
-	          varNames.map(function (name) {
-	            series[name].values.push({name: name, label: d[labelVar], value: +d[name]});
-	          });
-	        });
-
-	        x.domain(data.map(function (d) { return d.quarter; }));
-
-	        stack(seriesArr);
-
-	        y.domain([0, d3.max(seriesArr, function (c) { 
-	            return d3.max(c.values, function (d) { return d.y0 + d.y; });
-	          })]);
-
-	        svg.append("g")
-	            .attr("class", "x axis")
-	            .attr("transform", "translate(0," + height + ")")
-	            .call(xAxis);
-
-	        svg.append("g")
-	            .attr("class", "y axis")
-	            .call(yAxis)
-	          .append("text")
-	            .attr("transform", "rotate(-90)")
-	            .attr("y", 6)
-	            .attr("dy", ".71em")
-	            .style("text-anchor", "end")
-	            .style("fill", "#FFF")
-	            .text("Number of Rounds");
-
-	        var selection = svg.selectAll(".series")
-	          .data(seriesArr)
-	          .enter().append("g")
-	            .attr("class", "series");
-
-	        selection.append("path")
-	          .attr("class", "streamPath")
-	          .attr("d", function (d) { return area(d.values); })
-	          .style("fill", function (d) { return color(d.name); })
-	          .style("stroke", "grey");
-
-	        var points = svg.selectAll(".seriesPoints")
-	          .data(seriesArr)
-	          .enter().append("g")
-	            .attr("class", "seriesPoints");
-
-	        points.selectAll(".point")
-	          .data(function (d) { return d.values; })
-	          .enter().append("circle")
-	           .attr("class", "point")
-	           .attr("cx", function (d) { return x(d.label) + x.rangeBand() / 2; })
-	           .attr("cy", function (d) { return y(d.y0 + d.y); })
-	           .attr("r", "10px")
-	           .style("fill",function (d) { return color(d.name); })
-	           .on("mouseover", function (d) { showPopover.call(this, d); })
-	           .on("mouseout",  function (d) { removePopovers(); })
-
-	        var legend = svg.selectAll(".legend")
-	            .data(varNames.slice().reverse())
-	          .enter().append("g")
-	            .attr("class", "legend")
-	            .attr("transform", function (d, i) { return "translate(55," + i * 20 + ")"; });
-
-	        legend.append("rect")
-	            .attr("x", width - 10)
-	            .attr("width", 10)
-	            .attr("height", 10)
-	            .style("fill", color)
-	            .style("stroke", "grey");
-
-	        legend.append("text")
-	            .attr("x", width - 12)
-	            .attr("y", 6)
-	            .attr("dy", ".35em")
-	            .style("text-anchor", "end")
-	            .style("fill", "#FFF")
-	            .text(function (d) { return d; });
-
-	        function removePopovers () {
-	          $('.popover').each(function() {
-	            $(this).remove();
-	          }); 
-	        }
-
-	        function showPopover (d) {
-	          $(this).popover({
-	            title: d.name,
-	            placement: 'auto top',
-	            container: 'body',
-	            trigger: 'manual',
-	            html : true,
-	            content: function() { 
-	              return "Quarter: " + d.label + 
-	                     "<br/>Rounds: " + d3.format(",")(d.value ? d.value: d.y1 - d.y0); }
-	          });
-	          $(this).popover('show')
-	        }
-
-	      });
-
-
-        /*---------------------------------------- /D3 -----------------------------------------*/
-
-        
-        // safe apply
-        if(!$rootScope.$$phase) {
-        	$rootScope.$apply();
-        };
-	};
-
-
-	
-	return service;
-
-}]);
-'use strict';
-
-angular.module('cossap.charts', [])
-
-
-.directive('cossapChartPanel', [function() {
-	return {
-		templateUrl : 'components/charts/charts.html',
-		controller : 'cossapChartController'
-	};e
-}])
-
-
-.controller('cossapChartController', ['$scope', 'cossapChartState', 
-	function($scope, cossapChartState) {
-
-	
-	$scope.cossapChartState = cossapChartState;
-
-}])
-
-.factory('cossapChartState', [function() {
-
-	var state = {};
-
-	state.chartPanel = false;
-	state.streamChart = false;
-
-	return state;
-
-}]);
-
-/**
- * Created by danielwild on 10/09/2015.
- */
-
-'use strict';
-
-angular.module('cesium.minimap', [])
-
-/**
- * An ng service wrapper to add a 2d mini map to your cesium viewer
- *
- */
-.factory('miniMapService', [function() {
-
-
-		var service = {};
-
-
-		//options = options || {};
-		//var expanded = options.expanded || true;
-
-		service.parentViewer;
-		service.parentCamera;
-
-		service.expanded = true;
-		service.miniViewer;
-		service.container;
-		service.toggleButton;
-
-		service.options = {
-			animation: false,
-			baseLayerPicker: false,
-			fullscreenButton: false,
-			geocoder: false,
-			homeButton: false,
-			infoBox: false,
-			sceneModePicker: false,
-			selectionIndicator: false,
-			timeline: false,
-			navigationHelpButton: false,
-			navigationInstructionsInitiallyVisible: false,
-			orderIndependentTranslucency: false,
-			sceneMode: Cesium.SceneMode.SCENE2D,
-			mapProjection: new Cesium.WebMercatorProjection()
-		};
-
-
-		service.init = function(parentViewer){
-
-
-			service.parentViewer = parentViewer;
-			service.parentCamera = service.parentViewer.scene.camera;
-
-			console.log("and we're off..");
-
-			// kick it off..
-			init();
-
-		};
-
-
-
-		// gets the miniMap container div
-		function getContainer() {
-			var parentDiv = document.createElement('div');
-			parentDiv.className = 'cesium-minimap';
-			service.parentViewer.bottomContainer.appendChild(parentDiv);
-			return parentDiv;
-		}
-
-		function addLayer(layer) {
-			service.miniViewer.imageryLayers.addImageryProvider(layer.imageryProvider);
-		}
-
-		function setupMap(div) {
-
-			service.options.creditContainer = document.createElement('div');
-
-			var viewer = new Cesium.Viewer(div, service.options);
-			viewer.scene.imageryLayers.removeAll();
-
-			var scene = viewer.scene;
-			scene.screenSpaceCameraController.enableRotate = false;
-			scene.screenSpaceCameraController.enableTranslate = false;
-			scene.screenSpaceCameraController.enableZoom = false;
-			scene.screenSpaceCameraController.enableTilt = false;
-			scene.screenSpaceCameraController.enableLook = false;
-
-			service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
-
-			service.miniViewer = viewer;
-		}
-
-
-		// loop fast when camera is being moved
-		function mapMoving(){
-
-			service.intervalHandle = setInterval(function() {
-
-				getExtentView();
-
-				// using the parent position directly fails with pitch and yaw
-				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-				//	service.parentCamera.position.clone()
-				//);
-				//
-				//service.miniViewer.scene.camera.setView({
-				//	positionCartographic: pos,
-				//	heading: service.parentCamera.heading
-				//});
-
-			}, 10);
-
-		};
-
-		// clear interval when map inactive
-		function mapStopped(){
-			clearInterval(service.intervalHandle);
-			console.log("stopped");
-		};
-
-		// get 2d rectangle from current view
-		function getExtentView(){
-
-			var ellipsoid = Cesium.Ellipsoid.WGS84;
-
-
-			var c2 = new Cesium.Cartesian2(0,0);
-			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-
-			c2 = new Cesium.Cartesian2(service.parentViewer.scene.canvas.width, service.parentViewer.scene.canvas.height);
-			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-
-
-			if(leftTop != null && rightDown != null){
-
-				leftTop = ellipsoid.cartesianToCartographic(leftTop);
-				rightDown = ellipsoid.cartesianToCartographic(rightDown);
-
-				// west, south, east, north
-				var extent = new Cesium.Rectangle.fromDegrees(
-
-					Cesium.Math.toDegrees(leftTop.longitude),
-					Cesium.Math.toDegrees(rightDown.latitude),
-					Cesium.Math.toDegrees(rightDown.longitude),
-					Cesium.Math.toDegrees(leftTop.latitude)
-
-				);
-
-				//console.log(extent);
-				service.miniViewer.scene.camera.viewRectangle(extent);
-
-
-
-				console.log("view changed");
-
-				// entity...
-				//var cartesianPositions = ellipsoid.cartographicArrayToCartesianArray(
-				//	Cesium.Math.toDegrees(leftTop.longitude),
-				//	Cesium.Math.toDegrees(rightDown.latitude),
-				//	Cesium.Math.toDegrees(rightDown.longitude),
-				//	Cesium.Math.toDegrees(leftTop.latitude)
-				//);
-				//var entity = service.parentViewer.entities.add({
-				//	polygon : {
-				//		hierarchy : cartesianPositions,
-				//		outline : true,
-				//		outlineColor : Cesium.Color.RED,
-				//		outlineWidth : 9,
-				//		perPositionHeight: true,
-				//		material : Cesium.Color.BLUE.withAlpha(0.0),
-				//	}
-				//});
-
-
-
-				return extent;
-			}
-
-			else{//The sky is visible in 3D
-
-				console.log("the sky is falling :(");
-
-				return null;
-			}
-		}
-
-		function preRender(scene) {
-
-			var time = Cesium.getTimestamp();
-			var position = service.parentCamera.position;
-
-			if (!Cesium.Cartesian3.equalsEpsilon(service.lastPosition, position, Cesium.Math.EPSILON4)) {
-
-				console.log("view changed");
-
-				getExtentView();
-
-				service.lastTime = time;
-				//
-				//var pos = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-				//	service.parentCamera.position.clone()
-				//);
-				//
-				//service.miniViewer.scene.camera.setView({
-				//	positionCartographic: pos,
-				//	heading: service.parentCamera.heading
-				//});
-			}
-
-			else if (time - service.lastTime > 250) {
-
-				//hide the 'view changed' message after 250 ms of inactivity
-				service.lastTime = time;
-				console.log("stopped");
-			}
-			service.lastPosition = position.clone();
-		}
-
-		function setupListeners() {
-
-			//service.lastTime = Cesium.getTimestamp();
-			//service.lastPosition = service.parentCamera.position.clone();
-			//
-			//service.parentViewer.scene.preRender.addEventListener(preRender);
-
-			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
-			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
-		}
-
-		function toggle() {
-			service.expanded = !service.expanded;
-
-			if (service.expanded) {
-				service.container.style.width = '350px';
-				service.container.style.height = '350px';
-				service.toggleButton.className = service.toggleButton.className.replace(
-					' minimized',
-					''
-				);
-			} else {
-				//close
-				service.container.style.width = '19px';
-				service.container.style.height = '19px';
-				service.toggleButton.className += ' minimized';
-			}
-		}
-
-		function createToggleButton() {
-
-			var btn = document.createElement('a');
-			btn.className = 'minimap-toggle-display';
-
-			var icon = document.createElement('i');
-			icon.className = 'fa fa-arrow-right';
-
-			btn.appendChild(icon);
-
-			btn.onclick = function (e) {
-				e.preventDefault();
-				toggle();
-				return false;
-			};
-			return btn;
-		}
-
-
-		function init() {
-
-			// create container div -> directive...?
-			var div = document.createElement('div');
-			div.className = 'minimap-container';
-
-			service.container = getContainer();
-			service.container.appendChild(div);
-			service.toggleButton = createToggleButton();
-			service.container.appendChild(service.toggleButton);
-			setupMap(div);
-			setupListeners();
-
-			var url = "http://www.ga.gov.au/gis/rest/services/topography/Australian_Topography_WM/MapServer";
-			var layer = "0";
-
-
-
-			var topoLayer = new Cesium.ArcGisMapServerImageryProvider({
-				url : url,
-				layers: layer,
-				rectangle: ausExtent, // only load imagery for australia
-			});
-
-			addLayer(topoLayer);
-
-
-			// inherit parent baselayer..?
-			//if (service.parentViewer.imageryLayers.length) {
-			//	addLayer(service.parentViewer.imageryLayers.get(0));
-			//}
-		}
-
-
-
-
-
-
-
-		return service;
-
-}])
 /**
  * Created by danielwild on 31/08/2015.
  */
@@ -1262,3 +961,215 @@ angular.module('cesium.picker', [])
     return service;
 }])
 
+
+/**
+ * Created by danielwild on 10/09/2015.
+ */
+
+'use strict';
+
+angular.module('cesium.minimap', [])
+
+/**
+ *
+ * TODO: ng refactor
+ *
+ * An ng service wrapper to add 2d mini map to your cesium viewer
+ *
+ */
+.factory('miniMapService', [function() {
+
+
+		var service = {};
+
+		service.parentViewer;
+		service.parentCamera;
+
+		service.expanded = true;
+		service.miniViewer;
+		service.container;
+		service.toggleButton;
+		service.logging;
+
+		service.options = {
+			animation: false,
+			baseLayerPicker: false,
+			fullscreenButton: false,
+			geocoder: false,
+			homeButton: false,
+			infoBox: false,
+			sceneModePicker: false,
+			selectionIndicator: false,
+			timeline: false,
+			navigationHelpButton: false,
+			navigationInstructionsInitiallyVisible: false,
+			orderIndependentTranslucency: false,
+			sceneMode: Cesium.SceneMode.SCENE2D,
+			mapProjection: new Cesium.WebMercatorProjection()
+		};
+
+		/**
+		 *
+		 * @param parentViewer the 3d parent globe viewer
+		 * @param imageryProvider the imageryProvider to be used on the minimap
+		 *
+		 */
+		service.init = function(parentViewer, imageryProvider){
+
+			service.parentViewer = parentViewer;
+			service.parentCamera = service.parentViewer.scene.camera;
+
+			// create container div -> directive...?
+			var div = document.createElement('div');
+			div.className = 'minimap-container';
+			service.logging = document.createElement('div');
+			service.logging.innerHTML = "Using National Scale"
+			service.logging.className = 'minimap-logging';
+			div.appendChild(service.logging);
+
+			service.container = getContainer();
+			service.container.appendChild(div);
+			service.toggleButton = createToggleButton();
+			service.container.appendChild(service.toggleButton);
+			setupMap(div);
+			setupListeners();
+
+			service.miniViewer.scene.imageryLayers.addImageryProvider(imageryProvider);
+			service.miniViewer.camera.viewRectangle(ausExtent);
+		};
+
+
+		// gets the miniMap container div
+		function getContainer() {
+			var parentDiv = document.createElement('div');
+			parentDiv.className = 'cesium-minimap';
+			service.parentViewer.bottomContainer.appendChild(parentDiv);
+			return parentDiv;
+		}
+
+		function addLayer(layer) {
+			service.miniViewer.imageryLayers.addImageryProvider(layer.imageryProvider);
+		}
+
+		function setupMap(div) {
+
+			service.options.creditContainer = document.createElement('div');
+
+			var viewer = new Cesium.Viewer(div, service.options);
+			viewer.scene.imageryLayers.removeAll();
+
+			var scene = viewer.scene;
+			scene.screenSpaceCameraController.enableRotate = false;
+			scene.screenSpaceCameraController.enableTranslate = false;
+			scene.screenSpaceCameraController.enableZoom = false;
+			scene.screenSpaceCameraController.enableTilt = false;
+			scene.screenSpaceCameraController.enableLook = false;
+
+			service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
+
+			service.miniViewer = viewer;
+		}
+
+		// use move start/stop so we're only looping when it matters
+		function mapMoving(){
+
+			service.intervalHandle = setInterval(function() {
+				getExtentView();
+			}, 10);
+
+		};
+
+		// clear interval when map inactive
+		function mapStopped(){
+			clearInterval(service.intervalHandle);
+			console.log("stopped");
+		};
+
+		// get 2d rectangle from current view
+		function getExtentView(){
+
+			var ellipsoid = Cesium.Ellipsoid.WGS84;
+
+			var c2 = new Cesium.Cartesian2(0,0);
+			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+			c2 = new Cesium.Cartesian2(service.parentViewer.scene.canvas.width, service.parentViewer.scene.canvas.height);
+			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+			if(leftTop != null && rightDown != null){
+
+				leftTop = ellipsoid.cartesianToCartographic(leftTop);
+				rightDown = ellipsoid.cartesianToCartographic(rightDown);
+
+				// west, south, east, north
+				var extent = new Cesium.Rectangle.fromDegrees(
+					Cesium.Math.toDegrees(leftTop.longitude),
+					Cesium.Math.toDegrees(rightDown.latitude),
+					Cesium.Math.toDegrees(rightDown.longitude),
+					Cesium.Math.toDegrees(leftTop.latitude)
+				);
+
+				service.miniViewer.scene.camera.viewRectangle(extent);
+				console.log(extent);
+
+				service.logging.style.display = "none";
+
+				return extent;
+			}
+
+			// The sky is visible in 3D, fallback to ausExtent national map
+			else {
+
+				console.log("the sky is falling :`(");
+
+				service.miniViewer.camera.viewRectangle(ausExtent);
+				service.logging.style.display = "block";
+
+				return null;
+			}
+		}
+
+
+		function setupListeners() {
+			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
+			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
+		}
+
+		function toggle() {
+			service.expanded = !service.expanded;
+
+			if (service.expanded) {
+				service.container.style.width = '200px';
+				service.container.style.height = '200px';
+				service.toggleButton.className = service.toggleButton.className.replace(
+					' minimized',
+					''
+				);
+			} else {
+				//close
+				service.container.style.width = '19px';
+				service.container.style.height = '19px';
+				service.toggleButton.className += ' minimized';
+			}
+		}
+
+		function createToggleButton() {
+
+			var btn = document.createElement('a');
+			btn.className = 'minimap-toggle-display';
+
+			var icon = document.createElement('i');
+			icon.className = 'fa fa-arrow-right';
+
+			btn.appendChild(icon);
+
+			btn.onclick = function (e) {
+				e.preventDefault();
+				toggle();
+				return false;
+			};
+			return btn;
+		}
+
+		return service;
+}]);

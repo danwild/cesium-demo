@@ -290,7 +290,15 @@ angular.module('cossap.catalogue', [])
 
 	 $scope.demoMiniMap = function(){
 
-		 miniMapService.init(_viewer);
+		 var url = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer";
+		 var layer = "0";
+		 var imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
+			 url : url,
+			 layers: layer,
+			 rectangle: ausExtent
+		 });
+
+		 miniMapService.init(_viewer, imageryProvider);
 
 	 };
 
