@@ -27,6 +27,9 @@ angular.module('cesium.minimap', [])
 		service.toggleButton;
 		service.logging;
 
+		service.parentRectangle;
+		service.miniMapRectangle;
+
 		service.options = {
 			animation: false,
 			baseLayerPicker: false,
@@ -135,22 +138,39 @@ angular.module('cesium.minimap', [])
 
 			service.intervalHandle = setInterval(function() {
 
-				var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
-				console.log("heading: "+ heading + ", degrees: "+ (360 - heading));
-
 				// get buffered rectangle: getViewBounds(offset = 50)
 				//	> plot rectangle entity on parent + mini viewers
 				var bounds = getViewBounds(50);
-				//updateRectangleEntity(service.parentViewer, bounds.rectangle);
-				updateRectangleEntity(service.miniViewer, bounds.rectangle, heading);
-
-				// fire off our event?  Or set timeout?
-				//bounds.extent;
 
 				// get miniMap rectangle: getViewBounds(offset = 300)
 				// > use rectangle to set view for miniMap
 				var miniMapRectangle = getViewBounds(300).rectangle;
 				service.miniViewer.scene.camera.viewRectangle(miniMapRectangle);
+
+
+				if(service.parentRectangle && service.miniMapRectangle){
+					//updateRectangleEntity(service.parentViewer, bounds.rectangle);
+					updateRectangleEntity(
+						service.miniViewer,
+						service.parentViewer.scene.camera.positionCartographic,
+						service.miniMapRectangle
+					);
+				}
+				else {
+					initRectangleEntity(service.parentViewer, bounds.rectangle, "extentGeometry");
+					service.parentRectangle = bounds.rectangle;
+
+
+					initRectangleEntity(service.miniViewer, miniMapRectangle, "extentGeometry");
+					service.miniMapRectangle = miniMapRectangle;
+				}
+
+
+
+				// fire off our event?  Or set timeout?
+				//bounds.extent;
+
+
 
 			}, 10);
 
@@ -162,17 +182,14 @@ angular.module('cesium.minimap', [])
 			console.log("stopped");
 		};
 
-		function updateRectangleEntity(viewer, rectangle, heading){
 
-			rectangle = adjustRectangleSkew(rectangle, heading);
+		function initRectangleEntity(viewer, rectangle, id){
 
 			var entities = viewer.entities;
 
-			// TODO should just update existing
-			entities.removeAll();
-
 			entities.add({
 				rectangle : {
+					id: id,
 					coordinates : rectangle,
 					outline : true,
 					outlineColor : Cesium.Color.RED,
@@ -183,37 +200,27 @@ angular.module('cesium.minimap', [])
 
 		};
 
-		//function adjustRectangleSkew(rectangle, heading){
-        //
-		//	var degrees = 360 - heading;
-        //
-		//	//if(degrees < 180){
-        //
-		//		// west, south, east, north
-		//		var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//			Cesium.Math.toDegrees(rectangle.west) - (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.south) - (degrees / 10),
-		//			Cesium.Math.toDegrees(rectangle.east)  + (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.north) + (degrees / 10)
-		//		);
-		//	//}
-         //   //
-		//	//else {
-		//	//	// west, south, east, north
-		//	//	var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//	//		Cesium.Math.toDegrees(rectangle.west),
-		//	//		Cesium.Math.toDegrees(rectangle.south) + heading / 10,
-		//	//		Cesium.Math.toDegrees(rectangle.east),
-		//	//		Cesium.Math.toDegrees(rectangle.north) - heading / 10
-		//	//	);
-		//	//}
-        //
-		//	console.log(rectangle);
-		//	console.log(newRectangle);
-        //
-		//	//return rectangle;
-		//	return newRectangle;
-		//};
+		// just update the center position of nicely oriented rectangle otherwise we
+		// need some fancy footwork to handle heading rotation of our rectangle..
+		function updateRectangleEntity(viewer, position, rectangle){
+
+
+			console.log("position");
+			console.log(position);
+
+			// get the updated params
+			//var center = Cesium.Rectangle.center(rectangle);
+			var width = rectangle.width;
+			var height = rectangle.height;
+
+			console.log("center");
+			console.log(center);
+
+			var bRect = new Cesium.BoundingRectangle(center.x, center.y, width, height);
+
+			console.log(bRect);
+
+		};
 
 		// get extent of current view
 		function getViewBounds(offset){
