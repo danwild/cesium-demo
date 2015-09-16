@@ -27,9 +27,6 @@ angular.module('cesium.minimap', [])
 		service.toggleButton;
 		service.logging;
 
-		service.parentRectangle;
-		service.miniMapRectangle;
-
 		service.options = {
 			animation: false,
 			baseLayerPicker: false,
@@ -77,6 +74,29 @@ angular.module('cesium.minimap', [])
 			service.miniViewer.camera.viewRectangle(ausExtent);
 		};
 
+		/**
+		 *
+		 * TODO hide/show national scale display
+		 *
+		 */
+		service.toggle = function() {
+			service.expanded = !service.expanded;
+
+			if (service.expanded) {
+				service.container.style.width = '200px';
+				service.container.style.height = '200px';
+				service.toggleButton.className = service.toggleButton.className.replace(
+					' minimized',
+					''
+				);
+			} else {
+				//close
+				service.container.style.width = '19px';
+				service.container.style.height = '19px';
+				service.toggleButton.className += ' minimized';
+			}
+		};
+
 
 		// gets the miniMap container div
 		function getContainer() {
@@ -114,45 +134,24 @@ angular.module('cesium.minimap', [])
 		function mapMoving(){
 
 			service.intervalHandle = setInterval(function() {
-<<<<<<< HEAD
+
+				var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
+				console.log("heading: "+ heading + ", degrees: "+ (360 - heading));
 
 				// get buffered rectangle: getViewBounds(offset = 50)
 				//	> plot rectangle entity on parent + mini viewers
 				var bounds = getViewBounds(50);
+				//updateRectangleEntity(service.parentViewer, bounds.rectangle);
+				updateRectangleEntity(service.miniViewer, bounds.rectangle, heading);
+
+				// fire off our event?  Or set timeout?
+				//bounds.extent;
 
 				// get miniMap rectangle: getViewBounds(offset = 300)
 				// > use rectangle to set view for miniMap
 				var miniMapRectangle = getViewBounds(300).rectangle;
 				service.miniViewer.scene.camera.viewRectangle(miniMapRectangle);
 
-
-				if(service.parentRectangle && service.miniMapRectangle){
-					//updateRectangleEntity(service.parentViewer, bounds.rectangle);
-					updateRectangleEntity(
-						service.miniViewer,
-						service.parentViewer.scene.camera.positionCartographic,
-						service.miniMapRectangle
-					);
-				}
-				else {
-					initRectangleEntity(service.parentViewer, bounds.rectangle, "extentGeometry");
-					service.parentRectangle = bounds.rectangle;
-
-
-					initRectangleEntity(service.miniViewer, miniMapRectangle, "extentGeometry");
-					service.miniMapRectangle = miniMapRectangle;
-				}
-
-
-
-				// fire off our event?  Or set timeout?
-				//bounds.extent;
-
-
-
-=======
-				getExtentView();
->>>>>>> parent of ba52376... some messy attempts at showing bounding box entity
 			}, 10);
 
 		};
@@ -163,15 +162,17 @@ angular.module('cesium.minimap', [])
 			console.log("stopped");
 		};
 
-<<<<<<< HEAD
+		function updateRectangleEntity(viewer, rectangle, heading){
 
-		function initRectangleEntity(viewer, rectangle, id){
+			rectangle = adjustRectangleSkew(rectangle, heading);
 
 			var entities = viewer.entities;
 
+			// TODO should just update existing
+			entities.removeAll();
+
 			entities.add({
 				rectangle : {
-					id: id,
 					coordinates : rectangle,
 					outline : true,
 					outlineColor : Cesium.Color.RED,
@@ -182,41 +183,54 @@ angular.module('cesium.minimap', [])
 
 		};
 
-		// just update the center position of nicely oriented rectangle otherwise we
-		// need some fancy footwork to handle heading rotation of our rectangle..
-		function updateRectangleEntity(viewer, position, rectangle){
-
-
-			console.log("position");
-			console.log(position);
-
-			// get the updated params
-			//var center = Cesium.Rectangle.center(rectangle);
-			var width = rectangle.width;
-			var height = rectangle.height;
-
-			console.log("center");
-			console.log(center);
-
-			var bRect = new Cesium.BoundingRectangle(center.x, center.y, width, height);
-
-			console.log(bRect);
-
-		};
+		//function adjustRectangleSkew(rectangle, heading){
+        //
+		//	var degrees = 360 - heading;
+        //
+		//	//if(degrees < 180){
+        //
+		//		// west, south, east, north
+		//		var newRectangle = new Cesium.Rectangle.fromDegrees(
+		//			Cesium.Math.toDegrees(rectangle.west) - (degrees / 100),
+		//			Cesium.Math.toDegrees(rectangle.south) - (degrees / 10),
+		//			Cesium.Math.toDegrees(rectangle.east)  + (degrees / 100),
+		//			Cesium.Math.toDegrees(rectangle.north) + (degrees / 10)
+		//		);
+		//	//}
+         //   //
+		//	//else {
+		//	//	// west, south, east, north
+		//	//	var newRectangle = new Cesium.Rectangle.fromDegrees(
+		//	//		Cesium.Math.toDegrees(rectangle.west),
+		//	//		Cesium.Math.toDegrees(rectangle.south) + heading / 10,
+		//	//		Cesium.Math.toDegrees(rectangle.east),
+		//	//		Cesium.Math.toDegrees(rectangle.north) - heading / 10
+		//	//	);
+		//	//}
+        //
+		//	console.log(rectangle);
+		//	console.log(newRectangle);
+        //
+		//	//return rectangle;
+		//	return newRectangle;
+		//};
 
 		// get extent of current view
 		function getViewBounds(offset){
-=======
-		// get 2d rectangle from current view
-		function getExtentView(){
->>>>>>> parent of ba52376... some messy attempts at showing bounding box entity
 
 			var ellipsoid = Cesium.Ellipsoid.WGS84;
 
-			var c2 = new Cesium.Cartesian2(0,0);
+			// retina displays are the future, man
+			var pixelRatio = window.devicePixelRatio || 1;
+
+			var c2 = new Cesium.Cartesian2(-offset, -offset);
 			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
 
-			c2 = new Cesium.Cartesian2(service.parentViewer.scene.canvas.width, service.parentViewer.scene.canvas.height);
+			c2 = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+
 			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
 
 			if(leftTop != null && rightDown != null){
@@ -225,25 +239,38 @@ angular.module('cesium.minimap', [])
 				rightDown = ellipsoid.cartesianToCartographic(rightDown);
 
 				// west, south, east, north
-				var extent = new Cesium.Rectangle.fromDegrees(
+				var rectangle = new Cesium.Rectangle.fromDegrees(
 					Cesium.Math.toDegrees(leftTop.longitude),
 					Cesium.Math.toDegrees(rightDown.latitude),
 					Cesium.Math.toDegrees(rightDown.longitude),
 					Cesium.Math.toDegrees(leftTop.latitude)
 				);
 
-				service.miniViewer.scene.camera.viewRectangle(extent);
-				console.log(extent);
+				// xmin, ymin, xmax, ymax
+				var extent = {
+					'xmin': Cesium.Math.toDegrees(leftTop.longitude),
+					'ymin': Cesium.Math.toDegrees(rightDown.latitude),
+					'xmax': Cesium.Math.toDegrees(rightDown.longitude),
+					'ymax': Cesium.Math.toDegrees(leftTop.latitude)
+				};
+
+				//console.log("extent "+ offset);
+				//console.log(extent);
 
 				service.logging.style.display = "none";
 
-				return extent;
+				return {
+					rectangle: rectangle,
+					extent: extent
+				};
 			}
 
 			// The sky is visible in 3D, fallback to ausExtent national map
 			else {
 
-				console.log("the sky is falling :`(");
+				// TODO handle national scale fallback extent..
+
+				console.log("the sky is falling");
 
 				service.miniViewer.camera.viewRectangle(ausExtent);
 				service.logging.style.display = "block";
@@ -252,28 +279,76 @@ angular.module('cesium.minimap', [])
 			}
 		}
 
+		// get extent of current view
+		//function getViewBounds(){
+        //
+		//	var ellipsoid = Cesium.Ellipsoid.WGS84;
+        //
+		//	// retina displays are the future, man
+		//	var pixelRatio = window.devicePixelRatio || 1;
+        //
+		//	var c2 = new Cesium.Cartesian2(0, 0);
+		//	var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+        //
+		//	c2 = new Cesium.Cartesian2(
+		//		service.parentViewer.scene.canvas.width / pixelRatio,
+		//		service.parentViewer.scene.canvas.height / pixelRatio
+		//	);
+        //
+		//	var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+        //
+		//	if(leftTop != null && rightDown != null){
+        //
+		//		leftTop = ellipsoid.cartesianToCartographic(leftTop);
+		//		rightDown = ellipsoid.cartesianToCartographic(rightDown);
+        //
+		//		// west, south, east, north
+		//		var rectangle = new Cesium.Rectangle.fromDegrees(
+		//			Cesium.Math.toDegrees(leftTop.longitude),
+		//			Cesium.Math.toDegrees(rightDown.latitude),
+		//			Cesium.Math.toDegrees(rightDown.longitude),
+		//			Cesium.Math.toDegrees(leftTop.latitude)
+		//		);
+        //
+		//		// draw rectangle on miniViewer
+		//		updateRectangleEntity(service.miniViewer, rectangle);
+        //
+		//		// update view rectangle
+		//		service.miniViewer.scene.camera.viewRectangle(rectangle);
+        //
+		//		// zoom out a bit for context
+        //
+		//		// xmin, ymin, xmax, ymax
+		//		var extent = {
+		//			'xmin': Cesium.Math.toDegrees(leftTop.longitude),
+		//			'ymin': Cesium.Math.toDegrees(rightDown.latitude),
+		//			'xmax': Cesium.Math.toDegrees(rightDown.longitude),
+		//			'ymax': Cesium.Math.toDegrees(leftTop.latitude)
+		//		};
+        //
+		//		console.log(extent);
+        //
+		//		service.logging.style.display = "none";
+        //
+		//		return extent;
+		//	}
+        //
+		//	// The sky is visible in 3D, fallback to ausExtent national map
+		//	else {
+        //
+		//		console.log("the sky is falling");
+        //
+		//		service.miniViewer.camera.viewRectangle(ausExtent);
+		//		service.logging.style.display = "block";
+        //
+		//		return null;
+		//	}
+		//}
+
 
 		function setupListeners() {
 			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
 			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
-		}
-
-		function toggle() {
-			service.expanded = !service.expanded;
-
-			if (service.expanded) {
-				service.container.style.width = '200px';
-				service.container.style.height = '200px';
-				service.toggleButton.className = service.toggleButton.className.replace(
-					' minimized',
-					''
-				);
-			} else {
-				//close
-				service.container.style.width = '19px';
-				service.container.style.height = '19px';
-				service.toggleButton.className += ' minimized';
-			}
 		}
 
 		function createToggleButton() {
@@ -288,11 +363,63 @@ angular.module('cesium.minimap', [])
 
 			btn.onclick = function (e) {
 				e.preventDefault();
-				toggle();
+				service.toggle();
 				return false;
 			};
 			return btn;
 		}
 
 		return service;
+
+
+		/*
+
+		Potential helper functions from OL3-cesium...
+
+
+		 computeBoundingBoxAtTarget = function(scene, target, amount) {
+			 var pixelSize = olcs.core.computePixelSizeAtCoordinate(scene, target);
+			 var transform = Cesium.Transforms.eastNorthUpToFixedFrame(target);
+
+			 var bottomLeft = Cesium.Matrix4.multiplyByPoint(
+			 transform,
+			 new Cesium.Cartesian3(-pixelSize.x * amount, -pixelSize.y * amount, 0),
+			 new Cesium.Cartesian3());
+
+			 var topRight = Cesium.Matrix4.multiplyByPoint(
+			 transform,
+			 new Cesium.Cartesian3(pixelSize.x * amount, pixelSize.y * amount, 0),
+			 new Cesium.Cartesian3());
+
+			 return Cesium.Ellipsoid.WGS84.cartesianArrayToCartographicArray(
+			 [bottomLeft, topRight]);
+		 };
+
+
+
+
+		 getAltitude = function() {
+			 var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+			 this.cam_.position);
+
+			 return carto.height;
+		 };
+
+
+		Calculates position under the camera.
+		getPosition = function() {
+
+			var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+				this.cam_.position);
+
+			var pos = this.fromLonLat_([goog.math.toDegrees(carto.longitude),
+				goog.math.toDegrees(carto.latitude)]);
+
+			return pos;
+		};
+
+
+
+		 */
+
 }]);
