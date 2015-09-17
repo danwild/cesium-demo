@@ -136,19 +136,20 @@ angular.module('cesium.minimap', [])
 			service.intervalHandle = setInterval(function() {
 
 				var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
-				console.log("heading: "+ heading + ", degrees: "+ (360 - heading));
+				console.log('degrees: '+ (360 - heading));
 
-				// get buffered rectangle: getViewBounds(offset = 50)
-				//	> plot rectangle entity on parent + mini viewers
-				var bounds = getViewBounds(50);
+				// get buffered rectangle for extent
+				var bounds = getExtentBounds(50);
+
 				//updateRectangleEntity(service.parentViewer, bounds.rectangle);
+				// or just save co-ords and update on mouseEnter
+
 				updateRectangleEntity(service.miniViewer, bounds.rectangle, heading);
 
-				// fire off our event?  Or set timeout?
+				// TODO fire off our event?  Or set timeout?
 				//bounds.extent;
 
-				// get miniMap rectangle: getViewBounds(offset = 300)
-				// > use rectangle to set view for miniMap
+				// get miniMap rectangle for display bounds
 				var miniMapRectangle = getViewBounds(300).rectangle;
 				service.miniViewer.scene.camera.viewRectangle(miniMapRectangle);
 
@@ -163,8 +164,6 @@ angular.module('cesium.minimap', [])
 		};
 
 		function updateRectangleEntity(viewer, rectangle, heading){
-
-			rectangle = adjustRectangleSkew(rectangle, heading);
 
 			var entities = viewer.entities;
 
@@ -183,37 +182,210 @@ angular.module('cesium.minimap', [])
 
 		};
 
-		//function adjustRectangleSkew(rectangle, heading){
-        //
-		//	var degrees = 360 - heading;
-        //
-		//	//if(degrees < 180){
-        //
-		//		// west, south, east, north
-		//		var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//			Cesium.Math.toDegrees(rectangle.west) - (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.south) - (degrees / 10),
-		//			Cesium.Math.toDegrees(rectangle.east)  + (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.north) + (degrees / 10)
-		//		);
-		//	//}
-         //   //
-		//	//else {
-		//	//	// west, south, east, north
-		//	//	var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//	//		Cesium.Math.toDegrees(rectangle.west),
-		//	//		Cesium.Math.toDegrees(rectangle.south) + heading / 10,
-		//	//		Cesium.Math.toDegrees(rectangle.east),
-		//	//		Cesium.Math.toDegrees(rectangle.north) - heading / 10
-		//	//	);
-		//	//}
-        //
-		//	console.log(rectangle);
-		//	console.log(newRectangle);
-        //
-		//	//return rectangle;
-		//	return newRectangle;
-		//};
+
+
+		// get a postion for each four corners of the canvas
+		function getCanvasBounds(offset){
+
+			// retina displays are the future, man
+			var pixelRatio = window.devicePixelRatio || 1;
+			var ellipsoid = Cesium.Ellipsoid.WGS84;
+
+
+			// topLeft
+			var c2Pos = new Cesium.Cartesian2(-offset, -offset);
+			var topLeft = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// topRight
+			var c2Pos = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				-offset
+			);
+			var topRight = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// bottomLeft
+			c2Pos = new Cesium.Cartesian2(
+				-offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+			var bottomLeft = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// bottomRight
+			c2Pos = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+
+			var bottomRight = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			return [
+				ellipsoid.cartesianToCartographic(topLeft),
+				ellipsoid.cartesianToCartographic(bottomLeft),
+				ellipsoid.cartesianToCartographic(bottomRight),
+				ellipsoid.cartesianToCartographic(topRight)
+			];
+
+			//return {
+			//	topLeft: ellipsoid.cartesianToCartographic(topLeft),
+			//	topRight: ellipsoid.cartesianToCartographic(topRight),
+			//	bottomLeft: ellipsoid.cartesianToCartographic(bottomLeft),
+			//	bottomRight: ellipsoid.cartesianToCartographic(bottomRight)
+			//};
+
+		};
+
+		// shuffles the canvas corner positons to
+		// eliminate rectangle skew caused by offset globe headings
+		// i.e. if globe is at 20 degrees topRight becomes the highest latitude for our 2d bounds
+		function getOrientedBounds(degrees, corners){
+
+			var rectangle;
+
+			/*
+
+			 <degrees> -> <north corner>
+
+			 0-90 -> topRight
+			 90-180 -> bottomRight
+			 180-270 -> bottomLeft
+			 270-360 -> topRight
+
+			 */
+
+			var northCornerIndex = Math.abs(parseInt(degrees / 90));
+
+			console.log("index "+northCornerIndex);
+
+			//switch (northCornerIndex){
+			//
+			//	case 0:
+			//
+			//		// west, south, east, north
+			//		// 0-90 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//
+			//	case 1:
+			//
+			//		// west, south, east, north
+			//		// 90-180 -> bottomRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	case 2:
+			//
+			//		// west, south, east, north
+			//		// 180-270 -> bottomLeft
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	case 3:
+			//
+			//		// west, south, east, north
+			//		// 270-360 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.bottomLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomRight.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.topRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topLeft.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	default:
+			//
+			//		// west, south, east, north
+			//		// 0-90 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//}
+
+
+
+			/*
+
+			 <northIndex> -> [cornerIndexes]
+
+			 0 = [0,1,2,3]
+			 1 = [3,0,1,2]
+			 2 = [2,3,0,1]
+			 3 = [1,2,3,0]
+
+			 */
+
+			var cornerLookup = [
+				[0,1,2,3],
+				[3,0,1,2],
+				[2,3,0,1],
+				[1,2,3,0]
+			];
+
+			// west, south, east, north
+			rectangle = new Cesium.Rectangle.fromDegrees(
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][0] ].longitude), // lon
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][1] ].latitude), // lat
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][2] ].longitude), // lon
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][3] ].latitude) // lat
+			);
+
+
+			//xmin, ymin, xmax, ymax
+			var extent = {
+				'xmin': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][0] ].longitude),
+				'ymin': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][1] ].latitude),
+				'xmax': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][2] ].longitude),
+				'ymax': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][3] ].latitude)
+			};
+
+			return {
+				rectangle: rectangle,
+				extent: extent
+			};
+		};
+
+		// gets the extent of bounds + offset
+		function getExtentBounds(offset) {
+
+			var corners = getCanvasBounds(offset);
+
+			console.log(corners);
+
+			var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
+			var degrees = 360 - heading;
+
+			return getOrientedBounds(degrees, corners);
+
+		};
 
 		// get extent of current view
 		function getViewBounds(offset){
@@ -268,83 +440,24 @@ angular.module('cesium.minimap', [])
 			// The sky is visible in 3D, fallback to ausExtent national map
 			else {
 
-				// TODO handle national scale fallback extent..
-
-				console.log("the sky is falling");
-
-				service.miniViewer.camera.viewRectangle(ausExtent);
-				service.logging.style.display = "block";
+				fallback();
 
 				return null;
 			}
 		}
 
-		// get extent of current view
-		//function getViewBounds(){
-        //
-		//	var ellipsoid = Cesium.Ellipsoid.WGS84;
-        //
-		//	// retina displays are the future, man
-		//	var pixelRatio = window.devicePixelRatio || 1;
-        //
-		//	var c2 = new Cesium.Cartesian2(0, 0);
-		//	var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-        //
-		//	c2 = new Cesium.Cartesian2(
-		//		service.parentViewer.scene.canvas.width / pixelRatio,
-		//		service.parentViewer.scene.canvas.height / pixelRatio
-		//	);
-        //
-		//	var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-        //
-		//	if(leftTop != null && rightDown != null){
-        //
-		//		leftTop = ellipsoid.cartesianToCartographic(leftTop);
-		//		rightDown = ellipsoid.cartesianToCartographic(rightDown);
-        //
-		//		// west, south, east, north
-		//		var rectangle = new Cesium.Rectangle.fromDegrees(
-		//			Cesium.Math.toDegrees(leftTop.longitude),
-		//			Cesium.Math.toDegrees(rightDown.latitude),
-		//			Cesium.Math.toDegrees(rightDown.longitude),
-		//			Cesium.Math.toDegrees(leftTop.latitude)
-		//		);
-        //
-		//		// draw rectangle on miniViewer
-		//		updateRectangleEntity(service.miniViewer, rectangle);
-        //
-		//		// update view rectangle
-		//		service.miniViewer.scene.camera.viewRectangle(rectangle);
-        //
-		//		// zoom out a bit for context
-        //
-		//		// xmin, ymin, xmax, ymax
-		//		var extent = {
-		//			'xmin': Cesium.Math.toDegrees(leftTop.longitude),
-		//			'ymin': Cesium.Math.toDegrees(rightDown.latitude),
-		//			'xmax': Cesium.Math.toDegrees(rightDown.longitude),
-		//			'ymax': Cesium.Math.toDegrees(leftTop.latitude)
-		//		};
-        //
-		//		console.log(extent);
-        //
-		//		service.logging.style.display = "none";
-        //
-		//		return extent;
-		//	}
-        //
-		//	// The sky is visible in 3D, fallback to ausExtent national map
-		//	else {
-        //
-		//		console.log("the sky is falling");
-        //
-		//		service.miniViewer.camera.viewRectangle(ausExtent);
-		//		service.logging.style.display = "block";
-        //
-		//		return null;
-		//	}
-		//}
+		function fallback(){
 
+			// TODO handle national scale fallback extent..
+
+			console.log("the sky is falling");
+
+			service.miniViewer.camera.viewRectangle(ausExtent);
+			service.logging.style.display = "block";
+
+
+			return;
+		};
 
 		function setupListeners() {
 			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);

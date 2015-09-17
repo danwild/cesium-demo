@@ -136,7 +136,7 @@ angular.module('cossap.catalogue', [])
 		handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
 		handler.setInputAction(function(movement) {
 
-			console.log(movement);
+			//console.log(movement);
 
 			var cartesian = _viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
 			if (cartesian) {

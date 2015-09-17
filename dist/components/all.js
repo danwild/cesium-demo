@@ -17,6 +17,314 @@ angular.module('cossap.cesiumpanel', [])
 
 'use strict';
 
+angular.module('cossap.catalogue', [])
+
+
+.directive('cossapCatalogue', [function() {
+	return {
+		templateUrl : 'components/catalogue/catalogue.html',
+		controller : 'cossapCatalogueController'
+	};
+}])
+
+
+.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService', 'miniMapService',
+ function($scope, streamChartService, drawHelperService, pickService, miniMapService) {
+
+
+	$scope.drawHelperService = drawHelperService;
+	
+
+	var layers = _viewer.scene.imageryLayers;
+	//var canvas = _viewer.canvas;
+
+
+	var handler;
+
+
+	var myWms;
+    var myProxyLayer;
+	var myTiles;
+	var myBoreholes;
+
+
+	 $scope.drawHelperService.init(_viewer);
+	 $scope.pickService = pickService;
+
+	 var myDrawCallback = function(entity){
+		 console.log("myDrawCallback");
+		 console.log(entity);
+	 };
+
+	 $scope.initDrawTools = function(){
+		 $scope.drawHelperService.active = true;
+	 };
+
+	 $scope.callDrawMarker = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 imgUrl: 'bower_components/cesium-ng-drawhelper/img/dragIcon.png'
+		 };
+		 $scope.drawHelperService.drawMarker(options);
+	 };
+
+	 $scope.callDrawLine = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true,
+			 width: 5,
+	         geodesic: true
+		 };
+		 $scope.drawHelperService.drawPolyline(options);
+	};
+
+	$scope.callDrawPoly = function(){
+
+		var options = {
+			callback: myDrawCallback,
+			editable: true
+		};
+		$scope.drawHelperService.drawPolygon(options);
+	};
+
+	 $scope.callDrawExtent = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawExtent(options);
+	 };
+
+	 $scope.callDrawCircle = function(){
+
+		 var options = {
+			 callback: myDrawCallback,
+			 editable: true
+		 };
+		 $scope.drawHelperService.drawCircle(options);
+	 };
+
+	$scope.demoGraph = function(){
+
+		streamChartService.initChart();
+	};
+
+	$scope.demoPoly = function(){
+
+		var orangePolygon = _viewer.entities.add({
+		    name : 'Orange polygon with per-position heights and outline',
+		    polygon : {
+		        hierarchy : Cesium.Cartesian3.fromDegreesArrayHeights([138.0, -25.0, 100000,
+		                                                               130.0, -25.0, 100000,
+		                                                               130.0, -20.0, 100000,
+		                                                               138.0, -20.0, 300000]),
+		        extrudedHeight: 0,
+		        perPositionHeight : true,
+		        material : Cesium.Color.ORANGE.withAlpha(0.5),
+		        outline : true,
+		        outlineColor : Cesium.Color.BLACK
+		    }
+		});
+
+		_viewer.zoomTo(_viewer.entities);
+
+	};
+
+	 $scope.destroyCursorHandler = function(){
+		 if(handler){
+			 handler.destroy();
+			 handler = null;
+		 }
+	}
+
+	$scope.addCursorHandler = function(){
+
+		var ellipsoid = _viewer.scene.globe.ellipsoid;
+		var entity = _viewer.entities.add({
+			label : {
+				show : false
+			}
+		});
+
+		// Mouse over the globe to see the cartographic position
+		handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
+		handler.setInputAction(function(movement) {
+
+			//console.log(movement);
+
+			var cartesian = _viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
+			if (cartesian) {
+				var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+				var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
+				var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
+
+				entity.position = cartesian;
+				entity.label.show = true;
+				entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+			} else {
+				entity.label.show = false;
+			}
+		}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+	};
+
+	 $scope.addPickListener = function(){
+
+		 pickService.addPickListener();
+
+	 };
+
+	$scope.rest = function(){
+
+		console.log("ArcGis");
+
+		var url = "http://www.ga.gov.au/gis/rest/services/topography/Australian_Topography_WM/MapServer";
+		var layer = "0";
+
+		if(myTiles){
+			layers.remove(myTiles);
+			console.log("removing layer..");
+			myTiles = null;
+			return;
+		}
+
+		myTiles = layers.addImageryProvider(new Cesium.ArcGisMapServerImageryProvider({
+	        url : url,        
+	        layers: layer,
+	        rectangle: ausExtent, // only load imagery for australia
+	    }));
+
+	};
+
+	$scope.wms = function(){
+
+		console.log("wms");
+
+		if(myWms){
+			layers.remove(myWms);
+			console.log("removing layer..");
+			myWms = null;
+			return;
+		}
+
+		var url = "https://programs.communications.gov.au/geoserver/ows";
+		var layer = "mybroadband:MyBroadband_ADSL_Availability";
+
+		myWms = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
+	        url : url,        
+	        layers: layer,
+	        rectangle: ausExtent, // only load imagery for australia
+	        parameters : {
+                transparent : 'true',
+                format : 'image/png'
+            },
+			enablePickFeatures: true // enables built-in GetFeatureInfo()
+		}));
+
+		myWms.alpha = 0.6;
+
+		console.log(_viewer.scene.imageryLayers);
+
+	};
+
+	$scope.wmsProxy = function(){
+
+		console.log("text proxy");
+
+		if(myProxyLayer){
+			layers.remove(myProxyLayer);
+			console.log("removing layer..");
+			myProxyLayer = null;
+			return;
+		}
+
+		var url = "http://localhost:9090/geoserver/cossap/wms?service=WMS";
+		var layer = "cossap:Acreage_AcreageReleaseAreas_2014";
+
+		myProxyLayer = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
+			url : url,
+			layers: layer,
+			rectangle: ausExtent, // only load imagery for australia
+			parameters : {
+				transparent : 'true',
+				format : 'image/png',
+				//proxy: new Cesium.DefaultProxy('/proxy/')
+				proxy : {
+					getURL : function(url) {
+						// can tack on additional params, tokens etc this way if we need to..
+						return '/proxy/url?url=' + encodeURIComponent(url);
+					}
+				}
+			},
+			enablePickFeatures: true // enables built-in GetFeatureInfo()
+		}));
+
+		myProxyLayer.alpha = 0.6;
+
+		console.log(_viewer.scene.imageryLayers);
+
+	}
+
+	$scope.boreholes = function(){
+
+		console.log("boreholes");
+
+		if(myBoreholes){
+			layers.remove(myBoreholes);
+			console.log("removing layer..");
+			myBoreholes = null;
+			return;
+		}
+
+		var url = "http://www.ga.gov.au/borehole-gsmlborehole-gws/ows";
+		var layer = "gsmlp:BoreholeView";
+
+		var wmsCallback = function(){
+			console.log("CALLBACK.. only fires when no features returned...");
+		};
+
+
+		myBoreholes = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
+	        url : url,        
+	        layers: layer,
+	        rectangle: ausExtent, // only load imagery for australia
+	        parameters : {
+                transparent : 'true',
+                format : 'image/png'
+            },
+            enablePickFeatures: true, // enable GetFeatureInfo()
+
+            getFeatureInfoFormats: [new Cesium.GetFeatureInfoFormat('json', 'application/json', wmsCallback)]
+            
+
+        }));
+
+		myBoreholes.alpha = 1;
+	};
+
+	 $scope.demoMiniMap = function(){
+
+		 var url = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer";
+		 var layer = "0";
+		 var imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
+			 url : url,
+			 layers: layer,
+			 rectangle: ausExtent
+		 });
+
+		 miniMapService.init(_viewer, imageryProvider);
+
+	 };
+
+
+
+}]);
+
+'use strict';
+
 angular.module('cossap.charts.stream', [])
 
 
@@ -271,528 +579,6 @@ angular.module('cossap.charts', [])
 	return state;
 
 }]);
-
-/**
- * Created by danielwild on 10/09/2015.
- */
-
-'use strict';
-
-angular.module('cesium.minimap', [])
-
-/**
- *
- * TODO: ng refactor
- *
- * An ng service wrapper to add 2d mini map to your cesium viewer
- *
- */
-.factory('miniMapService', [function() {
-
-
-		var service = {};
-
-		service.parentViewer;
-		service.parentCamera;
-
-		service.expanded = true;
-		service.miniViewer;
-		service.container;
-		service.toggleButton;
-		service.logging;
-
-		service.options = {
-			animation: false,
-			baseLayerPicker: false,
-			fullscreenButton: false,
-			geocoder: false,
-			homeButton: false,
-			infoBox: false,
-			sceneModePicker: false,
-			selectionIndicator: false,
-			timeline: false,
-			navigationHelpButton: false,
-			navigationInstructionsInitiallyVisible: false,
-			orderIndependentTranslucency: false,
-			sceneMode: Cesium.SceneMode.SCENE2D,
-			mapProjection: new Cesium.WebMercatorProjection()
-		};
-
-		/**
-		 *
-		 * @param parentViewer the 3d parent globe viewer
-		 * @param imageryProvider the imageryProvider to be used on the minimap
-		 *
-		 */
-		service.init = function(parentViewer, imageryProvider){
-
-			service.parentViewer = parentViewer;
-			service.parentCamera = service.parentViewer.scene.camera;
-
-			// create container div -> directive...?
-			var div = document.createElement('div');
-			div.className = 'minimap-container';
-			service.logging = document.createElement('div');
-			service.logging.innerHTML = "Using National Scale"
-			service.logging.className = 'minimap-logging';
-			div.appendChild(service.logging);
-
-			service.container = getContainer();
-			service.container.appendChild(div);
-			service.toggleButton = createToggleButton();
-			service.container.appendChild(service.toggleButton);
-			setupMap(div);
-			setupListeners();
-
-			service.miniViewer.scene.imageryLayers.addImageryProvider(imageryProvider);
-			service.miniViewer.camera.viewRectangle(ausExtent);
-		};
-
-		/**
-		 *
-		 * TODO hide/show national scale display
-		 *
-		 */
-		service.toggle = function() {
-			service.expanded = !service.expanded;
-
-			if (service.expanded) {
-				service.container.style.width = '200px';
-				service.container.style.height = '200px';
-				service.toggleButton.className = service.toggleButton.className.replace(
-					' minimized',
-					''
-				);
-			} else {
-				//close
-				service.container.style.width = '19px';
-				service.container.style.height = '19px';
-				service.toggleButton.className += ' minimized';
-			}
-		};
-
-
-		// gets the miniMap container div
-		function getContainer() {
-			var parentDiv = document.createElement('div');
-			parentDiv.className = 'cesium-minimap';
-			service.parentViewer.bottomContainer.appendChild(parentDiv);
-			return parentDiv;
-		}
-
-		function addLayer(layer) {
-			service.miniViewer.imageryLayers.addImageryProvider(layer.imageryProvider);
-		}
-
-		function setupMap(div) {
-
-			service.options.creditContainer = document.createElement('div');
-
-			var viewer = new Cesium.Viewer(div, service.options);
-			viewer.scene.imageryLayers.removeAll();
-
-			var scene = viewer.scene;
-			scene.screenSpaceCameraController.enableRotate = false;
-			scene.screenSpaceCameraController.enableTranslate = false;
-			scene.screenSpaceCameraController.enableZoom = false;
-			scene.screenSpaceCameraController.enableTilt = false;
-			scene.screenSpaceCameraController.enableLook = false;
-
-			// inherit parent map..? nah
-			//service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
-
-			service.miniViewer = viewer;
-		}
-
-		// use move start/stop so we're only looping when it matters
-		function mapMoving(){
-
-			service.intervalHandle = setInterval(function() {
-
-				var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
-				console.log("heading: "+ heading + ", degrees: "+ (360 - heading));
-
-				// get buffered rectangle: getViewBounds(offset = 50)
-				//	> plot rectangle entity on parent + mini viewers
-				var bounds = getViewBounds(50);
-				//updateRectangleEntity(service.parentViewer, bounds.rectangle);
-				updateRectangleEntity(service.miniViewer, bounds.rectangle, heading);
-
-				// fire off our event?  Or set timeout?
-				//bounds.extent;
-
-				// get miniMap rectangle: getViewBounds(offset = 300)
-				// > use rectangle to set view for miniMap
-				var miniMapRectangle = getViewBounds(300).rectangle;
-				service.miniViewer.scene.camera.viewRectangle(miniMapRectangle);
-
-			}, 10);
-
-		};
-
-		// clear interval when map inactive
-		function mapStopped(){
-			clearInterval(service.intervalHandle);
-			console.log("stopped");
-		};
-
-		function updateRectangleEntity(viewer, rectangle, heading){
-
-			rectangle = adjustRectangleSkew(rectangle, heading);
-
-			var entities = viewer.entities;
-
-			// TODO should just update existing
-			entities.removeAll();
-
-			entities.add({
-				rectangle : {
-					coordinates : rectangle,
-					outline : true,
-					outlineColor : Cesium.Color.RED,
-					outlineWidth : 4,
-					material : Cesium.Color.RED.withAlpha(0.0)
-				}
-			});
-
-		};
-
-		//function adjustRectangleSkew(rectangle, heading){
-        //
-		//	var degrees = 360 - heading;
-        //
-		//	//if(degrees < 180){
-        //
-		//		// west, south, east, north
-		//		var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//			Cesium.Math.toDegrees(rectangle.west) - (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.south) - (degrees / 10),
-		//			Cesium.Math.toDegrees(rectangle.east)  + (degrees / 100),
-		//			Cesium.Math.toDegrees(rectangle.north) + (degrees / 10)
-		//		);
-		//	//}
-         //   //
-		//	//else {
-		//	//	// west, south, east, north
-		//	//	var newRectangle = new Cesium.Rectangle.fromDegrees(
-		//	//		Cesium.Math.toDegrees(rectangle.west),
-		//	//		Cesium.Math.toDegrees(rectangle.south) + heading / 10,
-		//	//		Cesium.Math.toDegrees(rectangle.east),
-		//	//		Cesium.Math.toDegrees(rectangle.north) - heading / 10
-		//	//	);
-		//	//}
-        //
-		//	console.log(rectangle);
-		//	console.log(newRectangle);
-        //
-		//	//return rectangle;
-		//	return newRectangle;
-		//};
-
-		// get extent of current view
-		function getViewBounds(offset){
-
-			var ellipsoid = Cesium.Ellipsoid.WGS84;
-
-			// retina displays are the future, man
-			var pixelRatio = window.devicePixelRatio || 1;
-
-			var c2 = new Cesium.Cartesian2(-offset, -offset);
-			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-
-			c2 = new Cesium.Cartesian2(
-				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
-				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
-			);
-
-			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-
-			if(leftTop != null && rightDown != null){
-
-				leftTop = ellipsoid.cartesianToCartographic(leftTop);
-				rightDown = ellipsoid.cartesianToCartographic(rightDown);
-
-				// west, south, east, north
-				var rectangle = new Cesium.Rectangle.fromDegrees(
-					Cesium.Math.toDegrees(leftTop.longitude),
-					Cesium.Math.toDegrees(rightDown.latitude),
-					Cesium.Math.toDegrees(rightDown.longitude),
-					Cesium.Math.toDegrees(leftTop.latitude)
-				);
-
-				// xmin, ymin, xmax, ymax
-				var extent = {
-					'xmin': Cesium.Math.toDegrees(leftTop.longitude),
-					'ymin': Cesium.Math.toDegrees(rightDown.latitude),
-					'xmax': Cesium.Math.toDegrees(rightDown.longitude),
-					'ymax': Cesium.Math.toDegrees(leftTop.latitude)
-				};
-
-				//console.log("extent "+ offset);
-				//console.log(extent);
-
-				service.logging.style.display = "none";
-
-				return {
-					rectangle: rectangle,
-					extent: extent
-				};
-			}
-
-			// The sky is visible in 3D, fallback to ausExtent national map
-			else {
-
-				// TODO handle national scale fallback extent..
-
-				console.log("the sky is falling");
-
-				service.miniViewer.camera.viewRectangle(ausExtent);
-				service.logging.style.display = "block";
-
-				return null;
-			}
-		}
-
-		// get extent of current view
-		//function getViewBounds(){
-        //
-		//	var ellipsoid = Cesium.Ellipsoid.WGS84;
-        //
-		//	// retina displays are the future, man
-		//	var pixelRatio = window.devicePixelRatio || 1;
-        //
-		//	var c2 = new Cesium.Cartesian2(0, 0);
-		//	var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-        //
-		//	c2 = new Cesium.Cartesian2(
-		//		service.parentViewer.scene.canvas.width / pixelRatio,
-		//		service.parentViewer.scene.canvas.height / pixelRatio
-		//	);
-        //
-		//	var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
-        //
-		//	if(leftTop != null && rightDown != null){
-        //
-		//		leftTop = ellipsoid.cartesianToCartographic(leftTop);
-		//		rightDown = ellipsoid.cartesianToCartographic(rightDown);
-        //
-		//		// west, south, east, north
-		//		var rectangle = new Cesium.Rectangle.fromDegrees(
-		//			Cesium.Math.toDegrees(leftTop.longitude),
-		//			Cesium.Math.toDegrees(rightDown.latitude),
-		//			Cesium.Math.toDegrees(rightDown.longitude),
-		//			Cesium.Math.toDegrees(leftTop.latitude)
-		//		);
-        //
-		//		// draw rectangle on miniViewer
-		//		updateRectangleEntity(service.miniViewer, rectangle);
-        //
-		//		// update view rectangle
-		//		service.miniViewer.scene.camera.viewRectangle(rectangle);
-        //
-		//		// zoom out a bit for context
-        //
-		//		// xmin, ymin, xmax, ymax
-		//		var extent = {
-		//			'xmin': Cesium.Math.toDegrees(leftTop.longitude),
-		//			'ymin': Cesium.Math.toDegrees(rightDown.latitude),
-		//			'xmax': Cesium.Math.toDegrees(rightDown.longitude),
-		//			'ymax': Cesium.Math.toDegrees(leftTop.latitude)
-		//		};
-        //
-		//		console.log(extent);
-        //
-		//		service.logging.style.display = "none";
-        //
-		//		return extent;
-		//	}
-        //
-		//	// The sky is visible in 3D, fallback to ausExtent national map
-		//	else {
-        //
-		//		console.log("the sky is falling");
-        //
-		//		service.miniViewer.camera.viewRectangle(ausExtent);
-		//		service.logging.style.display = "block";
-        //
-		//		return null;
-		//	}
-		//}
-
-
-		function setupListeners() {
-			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
-			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
-		}
-
-		function createToggleButton() {
-
-			var btn = document.createElement('a');
-			btn.className = 'minimap-toggle-display';
-
-			var icon = document.createElement('i');
-			icon.className = 'fa fa-arrow-right';
-
-			btn.appendChild(icon);
-
-			btn.onclick = function (e) {
-				e.preventDefault();
-				service.toggle();
-				return false;
-			};
-			return btn;
-		}
-
-		return service;
-
-
-		/*
-
-		Potential helper functions from OL3-cesium...
-
-
-		 computeBoundingBoxAtTarget = function(scene, target, amount) {
-			 var pixelSize = olcs.core.computePixelSizeAtCoordinate(scene, target);
-			 var transform = Cesium.Transforms.eastNorthUpToFixedFrame(target);
-
-			 var bottomLeft = Cesium.Matrix4.multiplyByPoint(
-			 transform,
-			 new Cesium.Cartesian3(-pixelSize.x * amount, -pixelSize.y * amount, 0),
-			 new Cesium.Cartesian3());
-
-			 var topRight = Cesium.Matrix4.multiplyByPoint(
-			 transform,
-			 new Cesium.Cartesian3(pixelSize.x * amount, pixelSize.y * amount, 0),
-			 new Cesium.Cartesian3());
-
-			 return Cesium.Ellipsoid.WGS84.cartesianArrayToCartographicArray(
-			 [bottomLeft, topRight]);
-		 };
-
-
-
-
-		 getAltitude = function() {
-			 var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-			 this.cam_.position);
-
-			 return carto.height;
-		 };
-
-
-		Calculates position under the camera.
-		getPosition = function() {
-
-			var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
-				this.cam_.position);
-
-			var pos = this.fromLonLat_([goog.math.toDegrees(carto.longitude),
-				goog.math.toDegrees(carto.latitude)]);
-
-			return pos;
-		};
-
-
-
-		 */
-
-}]);
-/**
- * Created by danielwild on 31/08/2015.
- */
-
-'use strict';
-
-/**
- *
- * Helper functions for feature picking... and service requests..?
- *
- */
-angular.module('cesium.picker', [])
-
-
-
-.factory('pickService', ['$q', function($q) {
-
-        var service = {};
-        var handler;
-
-        service.destroyPickListener = function(){
-            handler.destroy();
-        };
-
-        service.addPickListener = function(){
-
-            var ellipsoid = _viewer.scene.globe.ellipsoid;
-            var entity = _viewer.entities.add({
-                label : {
-                    show : false
-                }
-            });
-
-            // Mouse over the globe to see the cartographic position
-            handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
-            handler.setInputAction(function(pos) {
-
-                var cartesian = _viewer.camera.pickEllipsoid(pos.position, ellipsoid);
-
-                if (cartesian) {
-                    var cartographic = ellipsoid.cartesianToCartographic(cartesian);
-                    var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
-                    var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
-
-                    entity.position = cartesian;
-                    entity.label.show = true;
-                    entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
-
-                    service.pickImageryFeatures(pos.position); // Cartesian2
-
-                } else {
-                    entity.label.show = false;
-                }
-            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-        };
-
-        /**
-         *
-         * An improvised GetFeatureInfo(), determines the imagery layer features that are intersected by a pick ray.
-         *
-         *
-         * TerriaJs uses a similar approach (we haven't added vector support etc. yet)
-         * .../terriajs-1.0.36/lib/Models/Cesium.js (~ line 443)
-         *
-         *
-         * @param cartesian Cartesian2
-         */
-        service.pickImageryFeatures = function(cartesian){
-
-            var deferred = $q.defer();
-            var pickRay = _viewer.scene.camera.getPickRay(cartesian);
-
-            // Pick raster features
-            var promise = _viewer.scene.imageryLayers.pickImageryLayerFeatures(pickRay, _viewer.scene);
-
-            if (!Cesium.defined(promise)) {
-                console.log('No features picked.');
-            }
-
-            else {
-
-                Cesium.when(promise, function (features) {
-                    console.log(features);
-                    deferred.resolve(features);
-                });
-            }
-
-            return deferred.promise;
-        };
-
-
-
-    return service;
-}])
-
 
 /**
  * Created by danielwild on 26/08/2015.
@@ -1079,310 +865,638 @@ angular.module('cesium.drawhelper', [])
 	return service;
 
 }])
+/**
+ * Created by danielwild on 31/08/2015.
+ */
+
 'use strict';
 
-angular.module('cossap.catalogue', [])
+/**
+ *
+ * Helper functions for feature picking... and service requests..?
+ *
+ */
+angular.module('cesium.picker', [])
 
 
-.directive('cossapCatalogue', [function() {
-	return {
-		templateUrl : 'components/catalogue/catalogue.html',
-		controller : 'cossapCatalogueController'
-	};
+
+.factory('pickService', ['$q', function($q) {
+
+        var service = {};
+        var handler;
+
+        service.destroyPickListener = function(){
+            handler.destroy();
+        };
+
+        service.addPickListener = function(){
+
+            var ellipsoid = _viewer.scene.globe.ellipsoid;
+            var entity = _viewer.entities.add({
+                label : {
+                    show : false
+                }
+            });
+
+            // Mouse over the globe to see the cartographic position
+            handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
+            handler.setInputAction(function(pos) {
+
+                var cartesian = _viewer.camera.pickEllipsoid(pos.position, ellipsoid);
+
+                if (cartesian) {
+                    var cartographic = ellipsoid.cartesianToCartographic(cartesian);
+                    var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
+                    var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
+
+                    entity.position = cartesian;
+                    entity.label.show = true;
+                    entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+
+                    service.pickImageryFeatures(pos.position); // Cartesian2
+
+                } else {
+                    entity.label.show = false;
+                }
+            }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        };
+
+        /**
+         *
+         * An improvised GetFeatureInfo(), determines the imagery layer features that are intersected by a pick ray.
+         *
+         *
+         * TerriaJs uses a similar approach (we haven't added vector support etc. yet)
+         * .../terriajs-1.0.36/lib/Models/Cesium.js (~ line 443)
+         *
+         *
+         * @param cartesian Cartesian2
+         */
+        service.pickImageryFeatures = function(cartesian){
+
+            var deferred = $q.defer();
+            var pickRay = _viewer.scene.camera.getPickRay(cartesian);
+
+            // Pick raster features
+            var promise = _viewer.scene.imageryLayers.pickImageryLayerFeatures(pickRay, _viewer.scene);
+
+            if (!Cesium.defined(promise)) {
+                console.log('No features picked.');
+            }
+
+            else {
+
+                Cesium.when(promise, function (features) {
+                    console.log(features);
+                    deferred.resolve(features);
+                });
+            }
+
+            return deferred.promise;
+        };
+
+
+
+    return service;
 }])
 
 
-.controller('cossapCatalogueController', ['$scope', 'streamChartService', 'drawHelperService', 'pickService', 'miniMapService',
- function($scope, streamChartService, drawHelperService, pickService, miniMapService) {
+/**
+ * Created by danielwild on 10/09/2015.
+ */
+
+'use strict';
+
+angular.module('cesium.minimap', [])
+
+/**
+ *
+ * TODO: ng refactor
+ *
+ * An ng service wrapper to add 2d mini map to your cesium viewer
+ *
+ */
+.factory('miniMapService', [function() {
 
 
-	$scope.drawHelperService = drawHelperService;
-	
+		var service = {};
 
-	var layers = _viewer.scene.imageryLayers;
-	//var canvas = _viewer.canvas;
+		service.parentViewer;
+		service.parentCamera;
 
+		service.expanded = true;
+		service.miniViewer;
+		service.container;
+		service.toggleButton;
+		service.logging;
 
-	var handler;
-
-
-	var myWms;
-    var myProxyLayer;
-	var myTiles;
-	var myBoreholes;
-
-
-	 $scope.drawHelperService.init(_viewer);
-	 $scope.pickService = pickService;
-
-	 var myDrawCallback = function(entity){
-		 console.log("myDrawCallback");
-		 console.log(entity);
-	 };
-
-	 $scope.initDrawTools = function(){
-		 $scope.drawHelperService.active = true;
-	 };
-
-	 $scope.callDrawMarker = function(){
-
-		 var options = {
-			 callback: myDrawCallback,
-			 imgUrl: 'bower_components/cesium-ng-drawhelper/img/dragIcon.png'
-		 };
-		 $scope.drawHelperService.drawMarker(options);
-	 };
-
-	 $scope.callDrawLine = function(){
-
-		 var options = {
-			 callback: myDrawCallback,
-			 editable: true,
-			 width: 5,
-	         geodesic: true
-		 };
-		 $scope.drawHelperService.drawPolyline(options);
-	};
-
-	$scope.callDrawPoly = function(){
-
-		var options = {
-			callback: myDrawCallback,
-			editable: true
+		service.options = {
+			animation: false,
+			baseLayerPicker: false,
+			fullscreenButton: false,
+			geocoder: false,
+			homeButton: false,
+			infoBox: false,
+			sceneModePicker: false,
+			selectionIndicator: false,
+			timeline: false,
+			navigationHelpButton: false,
+			navigationInstructionsInitiallyVisible: false,
+			orderIndependentTranslucency: false,
+			sceneMode: Cesium.SceneMode.SCENE2D,
+			mapProjection: new Cesium.WebMercatorProjection()
 		};
-		$scope.drawHelperService.drawPolygon(options);
-	};
 
-	 $scope.callDrawExtent = function(){
+		/**
+		 *
+		 * @param parentViewer the 3d parent globe viewer
+		 * @param imageryProvider the imageryProvider to be used on the minimap
+		 *
+		 */
+		service.init = function(parentViewer, imageryProvider){
 
-		 var options = {
-			 callback: myDrawCallback,
-			 editable: true
-		 };
-		 $scope.drawHelperService.drawExtent(options);
-	 };
+			service.parentViewer = parentViewer;
+			service.parentCamera = service.parentViewer.scene.camera;
 
-	 $scope.callDrawCircle = function(){
+			// create container div -> directive...?
+			var div = document.createElement('div');
+			div.className = 'minimap-container';
+			service.logging = document.createElement('div');
+			service.logging.innerHTML = "Using National Scale"
+			service.logging.className = 'minimap-logging';
+			div.appendChild(service.logging);
 
-		 var options = {
-			 callback: myDrawCallback,
-			 editable: true
-		 };
-		 $scope.drawHelperService.drawCircle(options);
-	 };
+			service.container = getContainer();
+			service.container.appendChild(div);
+			service.toggleButton = createToggleButton();
+			service.container.appendChild(service.toggleButton);
+			setupMap(div);
+			setupListeners();
 
-	$scope.demoGraph = function(){
+			service.miniViewer.scene.imageryLayers.addImageryProvider(imageryProvider);
+			service.miniViewer.camera.viewRectangle(ausExtent);
+		};
 
-		streamChartService.initChart();
-	};
+		/**
+		 *
+		 * TODO hide/show national scale display
+		 *
+		 */
+		service.toggle = function() {
+			service.expanded = !service.expanded;
 
-	$scope.demoPoly = function(){
-
-		var orangePolygon = _viewer.entities.add({
-		    name : 'Orange polygon with per-position heights and outline',
-		    polygon : {
-		        hierarchy : Cesium.Cartesian3.fromDegreesArrayHeights([138.0, -25.0, 100000,
-		                                                               130.0, -25.0, 100000,
-		                                                               130.0, -20.0, 100000,
-		                                                               138.0, -20.0, 300000]),
-		        extrudedHeight: 0,
-		        perPositionHeight : true,
-		        material : Cesium.Color.ORANGE.withAlpha(0.5),
-		        outline : true,
-		        outlineColor : Cesium.Color.BLACK
-		    }
-		});
-
-		_viewer.zoomTo(_viewer.entities);
-
-	};
-
-	 $scope.destroyCursorHandler = function(){
-		 if(handler){
-			 handler.destroy();
-			 handler = null;
-		 }
-	}
-
-	$scope.addCursorHandler = function(){
-
-		var ellipsoid = _viewer.scene.globe.ellipsoid;
-		var entity = _viewer.entities.add({
-			label : {
-				show : false
-			}
-		});
-
-		// Mouse over the globe to see the cartographic position
-		handler = new Cesium.ScreenSpaceEventHandler(_viewer.scene.canvas);
-		handler.setInputAction(function(movement) {
-
-			console.log(movement);
-
-			var cartesian = _viewer.camera.pickEllipsoid(movement.endPosition, ellipsoid);
-			if (cartesian) {
-				var cartographic = ellipsoid.cartesianToCartographic(cartesian);
-				var longitudeString = Cesium.Math.toDegrees(cartographic.longitude).toFixed(2);
-				var latitudeString = Cesium.Math.toDegrees(cartographic.latitude).toFixed(2);
-
-				entity.position = cartesian;
-				entity.label.show = true;
-				entity.label.text = '(' + longitudeString + ', ' + latitudeString + ')';
+			if (service.expanded) {
+				service.container.style.width = '200px';
+				service.container.style.height = '200px';
+				service.toggleButton.className = service.toggleButton.className.replace(
+					' minimized',
+					''
+				);
 			} else {
-				entity.label.show = false;
+				//close
+				service.container.style.width = '19px';
+				service.container.style.height = '19px';
+				service.toggleButton.className += ' minimized';
 			}
-		}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
-
-	};
-
-	 $scope.addPickListener = function(){
-
-		 pickService.addPickListener();
-
-	 };
-
-	$scope.rest = function(){
-
-		console.log("ArcGis");
-
-		var url = "http://www.ga.gov.au/gis/rest/services/topography/Australian_Topography_WM/MapServer";
-		var layer = "0";
-
-		if(myTiles){
-			layers.remove(myTiles);
-			console.log("removing layer..");
-			myTiles = null;
-			return;
-		}
-
-		myTiles = layers.addImageryProvider(new Cesium.ArcGisMapServerImageryProvider({
-	        url : url,        
-	        layers: layer,
-	        rectangle: ausExtent, // only load imagery for australia
-	    }));
-
-	};
-
-	$scope.wms = function(){
-
-		console.log("wms");
-
-		if(myWms){
-			layers.remove(myWms);
-			console.log("removing layer..");
-			myWms = null;
-			return;
-		}
-
-		var url = "https://programs.communications.gov.au/geoserver/ows";
-		var layer = "mybroadband:MyBroadband_ADSL_Availability";
-
-		myWms = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
-	        url : url,        
-	        layers: layer,
-	        rectangle: ausExtent, // only load imagery for australia
-	        parameters : {
-                transparent : 'true',
-                format : 'image/png'
-            },
-			enablePickFeatures: true // enables built-in GetFeatureInfo()
-		}));
-
-		myWms.alpha = 0.6;
-
-		console.log(_viewer.scene.imageryLayers);
-
-	};
-
-	$scope.wmsProxy = function(){
-
-		console.log("text proxy");
-
-		if(myProxyLayer){
-			layers.remove(myProxyLayer);
-			console.log("removing layer..");
-			myProxyLayer = null;
-			return;
-		}
-
-		var url = "http://localhost:9090/geoserver/cossap/wms?service=WMS";
-		var layer = "cossap:Acreage_AcreageReleaseAreas_2014";
-
-		myProxyLayer = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
-			url : url,
-			layers: layer,
-			rectangle: ausExtent, // only load imagery for australia
-			parameters : {
-				transparent : 'true',
-				format : 'image/png',
-				//proxy: new Cesium.DefaultProxy('/proxy/')
-				proxy : {
-					getURL : function(url) {
-						// can tack on additional params, tokens etc this way if we need to..
-						return '/proxy/url?url=' + encodeURIComponent(url);
-					}
-				}
-			},
-			enablePickFeatures: true // enables built-in GetFeatureInfo()
-		}));
-
-		myProxyLayer.alpha = 0.6;
-
-		console.log(_viewer.scene.imageryLayers);
-
-	}
-
-	$scope.boreholes = function(){
-
-		console.log("boreholes");
-
-		if(myBoreholes){
-			layers.remove(myBoreholes);
-			console.log("removing layer..");
-			myBoreholes = null;
-			return;
-		}
-
-		var url = "http://www.ga.gov.au/borehole-gsmlborehole-gws/ows";
-		var layer = "gsmlp:BoreholeView";
-
-		var wmsCallback = function(){
-			console.log("CALLBACK.. only fires when no features returned...");
 		};
 
 
-		myBoreholes = layers.addImageryProvider(new Cesium.WebMapServiceImageryProvider({
-	        url : url,        
-	        layers: layer,
-	        rectangle: ausExtent, // only load imagery for australia
-	        parameters : {
-                transparent : 'true',
-                format : 'image/png'
-            },
-            enablePickFeatures: true, // enable GetFeatureInfo()
+		// gets the miniMap container div
+		function getContainer() {
+			var parentDiv = document.createElement('div');
+			parentDiv.className = 'cesium-minimap';
+			service.parentViewer.bottomContainer.appendChild(parentDiv);
+			return parentDiv;
+		}
 
-            getFeatureInfoFormats: [new Cesium.GetFeatureInfoFormat('json', 'application/json', wmsCallback)]
-            
+		function addLayer(layer) {
+			service.miniViewer.imageryLayers.addImageryProvider(layer.imageryProvider);
+		}
 
-        }));
+		function setupMap(div) {
 
-		myBoreholes.alpha = 1;
-	};
+			service.options.creditContainer = document.createElement('div');
 
-	 $scope.demoMiniMap = function(){
+			var viewer = new Cesium.Viewer(div, service.options);
+			viewer.scene.imageryLayers.removeAll();
 
-		 var url = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer";
-		 var layer = "0";
-		 var imageryProvider = new Cesium.ArcGisMapServerImageryProvider({
-			 url : url,
-			 layers: layer,
-			 rectangle: ausExtent
-		 });
+			var scene = viewer.scene;
+			scene.screenSpaceCameraController.enableRotate = false;
+			scene.screenSpaceCameraController.enableTranslate = false;
+			scene.screenSpaceCameraController.enableZoom = false;
+			scene.screenSpaceCameraController.enableTilt = false;
+			scene.screenSpaceCameraController.enableLook = false;
 
-		 miniMapService.init(_viewer, imageryProvider);
+			// inherit parent map..? nah
+			//service.parentViewer.scene.imageryLayers.layerAdded.addEventListener(addLayer);
 
-	 };
+			service.miniViewer = viewer;
+		}
+
+		// use move start/stop so we're only looping when it matters
+		function mapMoving(){
+
+			service.intervalHandle = setInterval(function() {
+
+				var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
+				console.log('degrees: '+ (360 - heading));
+
+				// get buffered rectangle for extent
+				var bounds = getExtentBounds(50);
+
+				//updateRectangleEntity(service.parentViewer, bounds.rectangle);
+				// or just save co-ords and update on mouseEnter
+
+				updateRectangleEntity(service.miniViewer, bounds.rectangle, heading);
+
+				// TODO fire off our event?  Or set timeout?
+				//bounds.extent;
+
+				// get miniMap rectangle for display bounds
+				var miniMapRectangle = getViewBounds(300).rectangle;
+				service.miniViewer.scene.camera.viewRectangle(miniMapRectangle);
+
+			}, 10);
+
+		};
+
+		// clear interval when map inactive
+		function mapStopped(){
+			clearInterval(service.intervalHandle);
+			console.log("stopped");
+		};
+
+		function updateRectangleEntity(viewer, rectangle, heading){
+
+			var entities = viewer.entities;
+
+			// TODO should just update existing
+			entities.removeAll();
+
+			entities.add({
+				rectangle : {
+					coordinates : rectangle,
+					outline : true,
+					outlineColor : Cesium.Color.RED,
+					outlineWidth : 4,
+					material : Cesium.Color.RED.withAlpha(0.0)
+				}
+			});
+
+		};
 
 
+
+		// get a postion for each four corners of the canvas
+		function getCanvasBounds(offset){
+
+			// retina displays are the future, man
+			var pixelRatio = window.devicePixelRatio || 1;
+			var ellipsoid = Cesium.Ellipsoid.WGS84;
+
+
+			// topLeft
+			var c2Pos = new Cesium.Cartesian2(-offset, -offset);
+			var topLeft = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// topRight
+			var c2Pos = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				-offset
+			);
+			var topRight = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// bottomLeft
+			c2Pos = new Cesium.Cartesian2(
+				-offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+			var bottomLeft = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			// bottomRight
+			c2Pos = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+
+			var bottomRight = service.parentViewer.scene.camera.pickEllipsoid(c2Pos, ellipsoid);
+
+
+			return [
+				ellipsoid.cartesianToCartographic(topLeft),
+				ellipsoid.cartesianToCartographic(bottomLeft),
+				ellipsoid.cartesianToCartographic(bottomRight),
+				ellipsoid.cartesianToCartographic(topRight)
+			];
+
+			//return {
+			//	topLeft: ellipsoid.cartesianToCartographic(topLeft),
+			//	topRight: ellipsoid.cartesianToCartographic(topRight),
+			//	bottomLeft: ellipsoid.cartesianToCartographic(bottomLeft),
+			//	bottomRight: ellipsoid.cartesianToCartographic(bottomRight)
+			//};
+
+		};
+
+		// shuffles the canvas corner positons to
+		// eliminate rectangle skew caused by offset globe headings
+		// i.e. if globe is at 20 degrees topRight becomes the highest latitude for our 2d bounds
+		function getOrientedBounds(degrees, corners){
+
+			var rectangle;
+
+			/*
+
+			 <degrees> -> <north corner>
+
+			 0-90 -> topRight
+			 90-180 -> bottomRight
+			 180-270 -> bottomLeft
+			 270-360 -> topRight
+
+			 */
+
+			var northCornerIndex = Math.abs(parseInt(degrees / 90));
+
+			console.log("index "+northCornerIndex);
+
+			//switch (northCornerIndex){
+			//
+			//	case 0:
+			//
+			//		// west, south, east, north
+			//		// 0-90 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//
+			//	case 1:
+			//
+			//		// west, south, east, north
+			//		// 90-180 -> bottomRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	case 2:
+			//
+			//		// west, south, east, north
+			//		// 180-270 -> bottomLeft
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	case 3:
+			//
+			//		// west, south, east, north
+			//		// 270-360 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.bottomLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomRight.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.topRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topLeft.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//	default:
+			//
+			//		// west, south, east, north
+			//		// 0-90 -> topRight
+			//		rectangle = new Cesium.Rectangle.fromDegrees(
+			//			Cesium.Math.toDegrees(corners.topLeft.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.bottomLeft.latitude), // lat
+			//			Cesium.Math.toDegrees(corners.bottomRight.longitude), // lon
+			//			Cesium.Math.toDegrees(corners.topRight.latitude) // lat
+			//		);
+			//
+			//		break;
+			//
+			//}
+
+
+
+			/*
+
+			 <northIndex> -> [cornerIndexes]
+
+			 0 = [0,1,2,3]
+			 1 = [3,0,1,2]
+			 2 = [2,3,0,1]
+			 3 = [1,2,3,0]
+
+			 */
+
+			var cornerLookup = [
+				[0,1,2,3],
+				[3,0,1,2],
+				[2,3,0,1],
+				[1,2,3,0]
+			];
+
+			// west, south, east, north
+			rectangle = new Cesium.Rectangle.fromDegrees(
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][0] ].longitude), // lon
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][1] ].latitude), // lat
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][2] ].longitude), // lon
+				Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][3] ].latitude) // lat
+			);
+
+
+			//xmin, ymin, xmax, ymax
+			var extent = {
+				'xmin': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][0] ].longitude),
+				'ymin': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][1] ].latitude),
+				'xmax': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][2] ].longitude),
+				'ymax': Cesium.Math.toDegrees(corners[ cornerLookup[northCornerIndex][3] ].latitude)
+			};
+
+			return {
+				rectangle: rectangle,
+				extent: extent
+			};
+		};
+
+		// gets the extent of bounds + offset
+		function getExtentBounds(offset) {
+
+			var corners = getCanvasBounds(offset);
+
+			console.log(corners);
+
+			var heading = parseFloat(Cesium.Math.toDegrees(service.parentCamera.heading));
+			var degrees = 360 - heading;
+
+			return getOrientedBounds(degrees, corners);
+
+		};
+
+		// get extent of current view
+		function getViewBounds(offset){
+
+			var ellipsoid = Cesium.Ellipsoid.WGS84;
+
+			// retina displays are the future, man
+			var pixelRatio = window.devicePixelRatio || 1;
+
+			var c2 = new Cesium.Cartesian2(-offset, -offset);
+			var leftTop = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+			c2 = new Cesium.Cartesian2(
+				(service.parentViewer.scene.canvas.width / pixelRatio) + offset,
+				(service.parentViewer.scene.canvas.height / pixelRatio) + offset
+			);
+
+			var rightDown = service.parentViewer.scene.camera.pickEllipsoid(c2, ellipsoid);
+
+			if(leftTop != null && rightDown != null){
+
+				leftTop = ellipsoid.cartesianToCartographic(leftTop);
+				rightDown = ellipsoid.cartesianToCartographic(rightDown);
+
+				// west, south, east, north
+				var rectangle = new Cesium.Rectangle.fromDegrees(
+					Cesium.Math.toDegrees(leftTop.longitude),
+					Cesium.Math.toDegrees(rightDown.latitude),
+					Cesium.Math.toDegrees(rightDown.longitude),
+					Cesium.Math.toDegrees(leftTop.latitude)
+				);
+
+				// xmin, ymin, xmax, ymax
+				var extent = {
+					'xmin': Cesium.Math.toDegrees(leftTop.longitude),
+					'ymin': Cesium.Math.toDegrees(rightDown.latitude),
+					'xmax': Cesium.Math.toDegrees(rightDown.longitude),
+					'ymax': Cesium.Math.toDegrees(leftTop.latitude)
+				};
+
+				//console.log("extent "+ offset);
+				//console.log(extent);
+
+				service.logging.style.display = "none";
+
+				return {
+					rectangle: rectangle,
+					extent: extent
+				};
+			}
+
+			// The sky is visible in 3D, fallback to ausExtent national map
+			else {
+
+				fallback();
+
+				return null;
+			}
+		}
+
+		function fallback(){
+
+			// TODO handle national scale fallback extent..
+
+			console.log("the sky is falling");
+
+			service.miniViewer.camera.viewRectangle(ausExtent);
+			service.logging.style.display = "block";
+
+
+			return;
+		};
+
+		function setupListeners() {
+			service.parentViewer.scene.camera.moveStart.addEventListener(mapMoving);
+			service.parentViewer.scene.camera.moveEnd.addEventListener(mapStopped);
+		}
+
+		function createToggleButton() {
+
+			var btn = document.createElement('a');
+			btn.className = 'minimap-toggle-display';
+
+			var icon = document.createElement('i');
+			icon.className = 'fa fa-arrow-right';
+
+			btn.appendChild(icon);
+
+			btn.onclick = function (e) {
+				e.preventDefault();
+				service.toggle();
+				return false;
+			};
+			return btn;
+		}
+
+		return service;
+
+
+		/*
+
+		Potential helper functions from OL3-cesium...
+
+
+		 computeBoundingBoxAtTarget = function(scene, target, amount) {
+			 var pixelSize = olcs.core.computePixelSizeAtCoordinate(scene, target);
+			 var transform = Cesium.Transforms.eastNorthUpToFixedFrame(target);
+
+			 var bottomLeft = Cesium.Matrix4.multiplyByPoint(
+			 transform,
+			 new Cesium.Cartesian3(-pixelSize.x * amount, -pixelSize.y * amount, 0),
+			 new Cesium.Cartesian3());
+
+			 var topRight = Cesium.Matrix4.multiplyByPoint(
+			 transform,
+			 new Cesium.Cartesian3(pixelSize.x * amount, pixelSize.y * amount, 0),
+			 new Cesium.Cartesian3());
+
+			 return Cesium.Ellipsoid.WGS84.cartesianArrayToCartographicArray(
+			 [bottomLeft, topRight]);
+		 };
+
+
+
+
+		 getAltitude = function() {
+			 var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+			 this.cam_.position);
+
+			 return carto.height;
+		 };
+
+
+		Calculates position under the camera.
+		getPosition = function() {
+
+			var carto = Cesium.Ellipsoid.WGS84.cartesianToCartographic(
+				this.cam_.position);
+
+			var pos = this.fromLonLat_([goog.math.toDegrees(carto.longitude),
+				goog.math.toDegrees(carto.latitude)]);
+
+			return pos;
+		};
+
+
+
+		 */
 
 }]);
